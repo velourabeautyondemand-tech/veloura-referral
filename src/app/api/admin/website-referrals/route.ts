@@ -1,10 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { getWebsiteAdminFromHeaders } from '@/lib/website-admin-auth';
 
 export async function GET(request: NextRequest) {
-  const userId = request.headers.get('x-user-id');
-  const user = userId ? await prisma.user.findUnique({ where: { id: userId } }) : null;
-  if (user?.role !== 'ADMIN') {
+  if (!getWebsiteAdminFromHeaders(request.headers)) {
     return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
   }
 
