@@ -52,7 +52,7 @@ export default function LoginPage() {
         setStep('otp');
         setMessage(otpData.message || 'A verification code has been sent to your email.');
       } else {
-        setError(otpData.message || 'Failed to send verification code');
+        setError(otpData.message || otpData.error || 'Failed to send verification code');
       }
     } catch (_e) {
       setError('Something went wrong. Please try again.');
@@ -83,7 +83,7 @@ export default function LoginPage() {
       if (res.ok && data.success) {
         const user = data.user;
         if (user.role === 'ADMIN') {
-          router.push('/admin');
+          router.push('/admin/technician-referrals');
         } else {
           router.push('/affiliate');
         }
