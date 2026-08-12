@@ -1,5 +1,6 @@
 import { prisma } from './prisma';
 import crypto from 'crypto';
+import { evaluateOtpAttempt, MAX_OTP_ATTEMPTS } from './otp-attempts';
 
 export class OTPService {
   // Generate a cryptographically secure 6-digit OTP
@@ -10,9 +11,15 @@ export class OTPService {
   // Generate and send OTP via email
   async sendOTP(email: string): Promise<{ success: boolean; message: string }> {
     try {
+      const normalizedEmail = email.toLowerCase().trim();
+      if (!process.env.RESEND_API_KEY || !process.env.RESEND_FROM_EMAIL) {
+        console.error('OTP email configuration is missing');
+        return { success: false, message: 'OTP email is not configured' };
+      }
+
       // Check if user exists
       const user = await prisma.user.findUnique({
-        where: { email: email.toLowerCase() }
+        where: { email: normalizedEmail }
       });
 
       if (!user) {
@@ -37,9 +44,9 @@ export class OTPService {
       }
 
       // Check for recent OTP attempts (rate limiting)
-      const recentOTP = await (prisma as any).OTP.findFirst({
+      const recentOTP = await prisma.otp.findFirst({
         where: {
-          email: email.toLowerCase(),
+          email: normalizedEmail,
           createdAt: {
             gte: new Date(Date.now() - 60000) // Within last minute
           }
@@ -54,9 +61,9 @@ export class OTPService {
       }
 
       // Invalidate any existing unused OTPs for this email
-      await (prisma as any).OTP.updateMany({
+      await prisma.otp.updateMany({
         where: {
-          email: email.toLowerCase(),
+          email: normalizedEmail,
           isUsed: false
         },
         data: {
@@ -69,9 +76,9 @@ export class OTPService {
       const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
       // Store OTP in database
-      await (prisma as any).OTP.create({
+      const otp = await prisma.otp.create({
         data: {
-          email: email.toLowerCase(),
+          email: normalizedEmail,
           code,
           expiresAt
         }
@@ -82,13 +89,14 @@ export class OTPService {
       const resendClient = new Resend(process.env.RESEND_API_KEY);
       const emailResult = await resendClient.emails.send({
         from: process.env.RESEND_FROM_EMAIL!,
-        to: email,
-        subject: 'Your Login Code',
+        to: normalizedEmail,
+        subject: 'Your VÉLOURA login code',
         html: this.generateOTPEmailTemplate(code, user.name || 'User')
       });
 
       if (emailResult.error) {
         console.error('Failed to send OTP email:', emailResult.error);
+        await prisma.otp.delete({ where: { id: otp.id } });
         return {
           success: false,
           message: 'Failed to send OTP email. Please try again.'
@@ -116,54 +124,48 @@ export class OTPService {
     message: string;
   }> {
     try {
-      // Find the OTP
-      const otp = await (prisma as any).OTP.findFirst({
+      // Find the current active OTP for this email. The submitted code must not
+      // be part of this lookup, otherwise a wrong code cannot increment the
+      // active OTP's failed-attempt count.
+      const otp = await prisma.otp.findFirst({
         where: {
           email: email.toLowerCase(),
-          code,
           isUsed: false,
           expiresAt: {
             gt: new Date()
           }
-        }
+        },
+        orderBy: { createdAt: 'desc' }
       });
 
       if (!otp) {
-        // Increment attempts for any existing OTP
-        await (prisma as any).OTP.updateMany({
-          where: {
-            email: email.toLowerCase(),
-            code,
-            isUsed: false
-          },
-          data: {
-            attempts: {
-              increment: 1
-            }
-          }
-        });
-
         return {
           success: false,
           message: 'Invalid or expired OTP'
         };
       }
 
-      // Check attempts limit
-      if (otp.attempts >= 3) {
-        await (prisma as any).OTP.update({
+      const attempt = evaluateOtpAttempt(otp, code);
+
+      if (!attempt.valid) {
+        await prisma.otp.update({
           where: { id: otp.id },
-          data: { isUsed: true }
+          data: {
+            attempts: { increment: 1 },
+            ...(attempt.invalidate ? { isUsed: true } : {}),
+          }
         });
 
         return {
           success: false,
-          message: 'Too many invalid attempts. Please request a new OTP.'
+          message: attempt.invalidate
+            ? `Too many invalid attempts. Please request a new OTP.`
+            : `Invalid or expired OTP. ${MAX_OTP_ATTEMPTS - otp.attempts - 1} attempts remaining.`
         };
       }
 
       // Mark OTP as used
-      await (prisma as any).OTP.update({
+      await prisma.otp.update({
         where: { id: otp.id },
         data: { isUsed: true }
       });
@@ -201,7 +203,7 @@ export class OTPService {
   // Clean up expired OTPs (should be run periodically)
   async cleanupExpiredOTPs(): Promise<void> {
     try {
-      await (prisma as any).OTP.deleteMany({
+      await prisma.otp.deleteMany({
         where: {
           OR: [
             {
