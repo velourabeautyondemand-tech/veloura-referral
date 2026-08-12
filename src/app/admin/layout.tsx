@@ -48,12 +48,14 @@ import {
   FileText,
   UsersRound,
   Layers,
+  Sparkles,
 } from 'lucide-react';
 
 const mainNavItems = [
   { title: 'Dashboard', url: '/admin', icon: LayoutDashboard },
   { title: 'Partners', url: '/admin/partners', icon: Users },
   { title: 'Customers', url: '/admin/customers', icon: UserCheck },
+  { title: 'Technician Referrals', url: '/admin/technician-referrals', icon: Sparkles },
   { title: 'Payouts', url: '/admin/payouts', icon: Wallet },
   { title: 'Invoices', url: '/admin/invoices', icon: FileText },
   { title: 'Emails', url: '/admin/emails', icon: Mail },
