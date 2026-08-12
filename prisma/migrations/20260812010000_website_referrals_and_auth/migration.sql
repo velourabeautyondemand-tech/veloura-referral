@@ -18,11 +18,11 @@ END $$;
 DO $$
 BEGIN
   IF (SELECT array_agg(enumlabel ORDER BY enumsortorder) FROM pg_enum WHERE enumtypid = '"ReferralRewardStatus"'::regtype)
-      <> ARRAY['PENDING', 'EARNED', 'PAID'] THEN
+      <> ARRAY['PENDING', 'EARNED', 'PAID']::name[] THEN
     RAISE EXCEPTION 'Existing ReferralRewardStatus enum is incompatible; migration stopped without changing data';
   END IF;
   IF (SELECT array_agg(enumlabel ORDER BY enumsortorder) FROM pg_enum WHERE enumtypid = '"WebsiteReferralStatus"'::regtype)
-      <> ARRAY['PENDING', 'APPROVED', 'REJECTED'] THEN
+      <> ARRAY['PENDING', 'APPROVED', 'REJECTED']::name[] THEN
     RAISE EXCEPTION 'Existing WebsiteReferralStatus enum is incompatible; migration stopped without changing data';
   END IF;
 END $$;
