@@ -28,11 +28,13 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
+    "postinstall": "prisma generate",
     "lint": "next lint",
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
     "db:seed": "tsx prisma/seed.ts",
-    "test:email": "node scripts/test-email.js"
+    "test:email": "node scripts/test-email.js",
+    "test:referrals": "tsx --test tests/website-referrals.test.ts tests/otp-attempts.test.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
