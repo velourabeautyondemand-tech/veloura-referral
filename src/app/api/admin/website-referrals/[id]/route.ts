@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { earnedRewardUpdate } from '@/lib/website-referrals';
+import { getWebsiteAdminFromHeaders } from '@/lib/website-admin-auth';
 
 type AdminAction = 'approve' | 'reject' | 'complete_onboarding' | 'mark_paid';
 
@@ -8,9 +9,8 @@ export async function PUT(
   request: NextRequest,
   context: { params: Promise<{ id: string }> }
 ) {
-  const userId = request.headers.get('x-user-id');
-  const user = userId ? await prisma.user.findUnique({ where: { id: userId } }) : null;
-  if (user?.role !== 'ADMIN') {
+  const admin = getWebsiteAdminFromHeaders(request.headers);
+  if (!admin) {
     return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
   }
 
@@ -30,7 +30,7 @@ export async function PUT(
         if (current.rewardStatus !== 'PENDING') throw new Error('REWARD_ALREADY_EARNED');
         return tx.websiteReferral.update({
           where: { id },
-          data: { status: 'REJECTED', reviewedBy: user.id, reviewedAt: now, reviewNotes: reviewNotes?.trim() || null },
+          data: { status: 'REJECTED', reviewedBy: admin.id, reviewedAt: now, reviewNotes: reviewNotes?.trim() || null },
         });
       }
 
@@ -56,7 +56,7 @@ export async function PUT(
         data: {
           ...(action === 'approve' ? {
             status: 'APPROVED' as const,
-            reviewedBy: user.id,
+            reviewedBy: admin.id,
             reviewedAt: now,
             reviewNotes: reviewNotes?.trim() || null,
           } : { onboardingCompletedAt: now }),
