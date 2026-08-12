@@ -27,19 +27,19 @@ export async function POST(request: NextRequest) {
 
     // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
+    if (typeof email !== 'string' || !emailRegex.test(email.trim())) {
       return NextResponse.json(
         { error: 'Invalid email format' },
         { status: 400 }
       );
     }
 
-    const result = await otpService.sendOTP(email);
+    const result = await otpService.sendOTP(email.trim().toLowerCase());
 
     if (!result.success) {
       return NextResponse.json(
         { success: false, message: result.message },
-        { status: 400 }
+        { status: result.message === 'OTP email is not configured' ? 503 : 400 }
       );
     }
 
