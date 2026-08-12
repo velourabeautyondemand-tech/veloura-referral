@@ -1,6 +1,35 @@
 import { prisma } from './prisma';
 import crypto from 'crypto';
 import { evaluateOtpAttempt, MAX_OTP_ATTEMPTS } from './otp-attempts';
+import { getWebsiteAdminIdentity, type WebsiteAdminIdentity } from './website-admin-auth';
+
+type OtpFailureStage =
+  | 'configuration'
+  | 'admin_authorization'
+  | 'otp_rate_limit'
+  | 'otp_invalidation'
+  | 'otp_persistence'
+  | 'resend_send'
+  | 'otp_cleanup';
+
+function safeErrorDetails(error: unknown) {
+  if (!(error instanceof Error)) return { type: 'UnknownError' };
+  const candidate = error as Error & { code?: unknown; statusCode?: unknown };
+  const message = error.message
+    .replace(/postgres(?:ql)?:\/\/[^\s]+/gi, '[REDACTED_DATABASE_URL]')
+    .replace(/\bre_[A-Za-z0-9_-]+\b/g, '[REDACTED_API_KEY]')
+    .slice(0, 500);
+  return {
+    type: error.name,
+    code: typeof candidate.code === 'string' ? candidate.code : undefined,
+    statusCode: typeof candidate.statusCode === 'number' ? candidate.statusCode : undefined,
+    message,
+  };
+}
+
+function logOtpFailure(event: string, stage: OtpFailureStage, error: unknown) {
+  console.error(event, { stage, ...safeErrorDetails(error) });
+}
 
 export class OTPService {
   // Generate a cryptographically secure 6-digit OTP
@@ -10,40 +39,28 @@ export class OTPService {
 
   // Generate and send OTP via email
   async sendOTP(email: string): Promise<{ success: boolean; message: string }> {
+    let stage: OtpFailureStage = 'configuration';
     try {
       const normalizedEmail = email.toLowerCase().trim();
       if (!process.env.RESEND_API_KEY || !process.env.RESEND_FROM_EMAIL) {
-        console.error('OTP email configuration is missing');
+        console.error('otp_send_configuration_missing', {
+          hasResendApiKey: Boolean(process.env.RESEND_API_KEY),
+          hasResendFromEmail: Boolean(process.env.RESEND_FROM_EMAIL),
+        });
         return { success: false, message: 'OTP email is not configured' };
       }
 
-      // Check if user exists
-      const user = await prisma.user.findUnique({
-        where: { email: normalizedEmail }
-      });
-
-      if (!user) {
+      stage = 'admin_authorization';
+      const admin = getWebsiteAdminIdentity(normalizedEmail);
+      if (!admin) {
         return {
           success: false,
           message: 'No account found with this email address'
         };
       }
 
-      // Check user status
-      if (user.status === 'PENDING') {
-        return {
-          success: false,
-          message: 'Your account is pending approval. Please wait for admin activation.'
-        };
-      }
-      if (user.status === 'INACTIVE' || user.status === 'SUSPENDED') {
-        return {
-          success: false,
-          message: 'Your account is not active. Please contact support.'
-        };
-      }
-
       // Check for recent OTP attempts (rate limiting)
+      stage = 'otp_rate_limit';
       const recentOTP = await prisma.otp.findFirst({
         where: {
           email: normalizedEmail,
@@ -61,6 +78,7 @@ export class OTPService {
       }
 
       // Invalidate any existing unused OTPs for this email
+      stage = 'otp_invalidation';
       await prisma.otp.updateMany({
         where: {
           email: normalizedEmail,
@@ -76,6 +94,7 @@ export class OTPService {
       const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
       // Store OTP in database
+      stage = 'otp_persistence';
       const otp = await prisma.otp.create({
         data: {
           email: normalizedEmail,
@@ -85,18 +104,24 @@ export class OTPService {
       });
 
       // Send OTP email
+      stage = 'resend_send';
       const { Resend } = await import('resend');
       const resendClient = new Resend(process.env.RESEND_API_KEY);
       const emailResult = await resendClient.emails.send({
-        from: process.env.RESEND_FROM_EMAIL!,
+        from: process.env.RESEND_FROM_EMAIL.trim(),
         to: normalizedEmail,
         subject: 'Your VÉLOURA login code',
-        html: this.generateOTPEmailTemplate(code, user.name || 'User')
+        html: this.generateOTPEmailTemplate(code, admin.name)
       });
 
       if (emailResult.error) {
-        console.error('Failed to send OTP email:', emailResult.error);
-        await prisma.otp.delete({ where: { id: otp.id } });
+        logOtpFailure('otp_resend_rejected', stage, emailResult.error);
+        stage = 'otp_cleanup';
+        try {
+          await prisma.otp.delete({ where: { id: otp.id } });
+        } catch (cleanupError) {
+          logOtpFailure('otp_cleanup_failed', stage, cleanupError);
+        }
         return {
           success: false,
           message: 'Failed to send OTP email. Please try again.'
@@ -109,7 +134,7 @@ export class OTPService {
       };
 
     } catch (error) {
-      console.error('Error sending OTP:', error);
+      logOtpFailure('otp_send_failed', stage, error);
       return {
         success: false,
         message: 'An error occurred while sending OTP'
@@ -120,16 +145,25 @@ export class OTPService {
   // Verify OTP and return user if valid
   async verifyOTP(email: string, code: string): Promise<{
     success: boolean;
-    user?: any;
+    user?: WebsiteAdminIdentity;
     message: string;
   }> {
     try {
+      const normalizedEmail = email.trim().toLowerCase();
+      const admin = getWebsiteAdminIdentity(normalizedEmail);
+      if (!admin) {
+        return {
+          success: false,
+          message: 'Invalid or expired OTP'
+        };
+      }
+
       // Find the current active OTP for this email. The submitted code must not
       // be part of this lookup, otherwise a wrong code cannot increment the
       // active OTP's failed-attempt count.
       const otp = await prisma.otp.findFirst({
         where: {
-          email: email.toLowerCase(),
+          email: normalizedEmail,
           isUsed: false,
           expiresAt: {
             gt: new Date()
@@ -170,29 +204,14 @@ export class OTPService {
         data: { isUsed: true }
       });
 
-      // Get user details
-      const user = await prisma.user.findUnique({
-        where: { email: email.toLowerCase() },
-        include: {
-          affiliate: true
-        }
-      });
-
-      if (!user) {
-        return {
-          success: false,
-          message: 'User not found'
-        };
-      }
-
       return {
         success: true,
-        user,
+        user: admin,
         message: 'OTP verified successfully'
       };
 
     } catch (error) {
-      console.error('Error verifying OTP:', error);
+      console.error('otp_verify_failed', safeErrorDetails(error));
       return {
         success: false,
         message: 'An error occurred while verifying OTP'
@@ -293,7 +312,7 @@ export class OTPService {
         <body>
           <div class="container">
             <div class="header">
-              <div class="logo">${process.env.PLATFORM_NAME || 'Affiliate Platform'}</div>
+              <div class="logo">${process.env.PLATFORM_NAME || 'VÉLOURA'}</div>
               <h1>Your Login Code</h1>
             </div>
             
@@ -313,11 +332,11 @@ export class OTPService {
             
             <div class="footer">
               <p>Best regards,<br>
-              ${process.env.PLATFORM_NAME || 'Affiliate Platform'} Team</p>
+              ${process.env.PLATFORM_NAME || 'VÉLOURA'} Team</p>
               <p>
                 Need help? Contact us at 
-                <a href="mailto:${process.env.PLATFORM_SUPPORT_EMAIL}" style="color: #2563eb;">
-                  ${process.env.PLATFORM_SUPPORT_EMAIL}
+                <a href="mailto:${process.env.PLATFORM_SUPPORT_EMAIL || 'support@velourabeautyondemand.com'}" style="color: #2563eb;">
+                  ${process.env.PLATFORM_SUPPORT_EMAIL || 'support@velourabeautyondemand.com'}
                 </a>
               </p>
             </div>
