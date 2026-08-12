@@ -171,7 +171,7 @@ model AuditLog {
   @@map("audit_logs")
 }
 
-model OTP {
+model Otp {
   id        String   @id @default(cuid())
   email     String
   code      String
@@ -183,6 +183,29 @@ model OTP {
   @@index([email])
   @@index([code])
   @@map("otps")
+}
+
+model WebsiteReferral {
+  id                    String               @id @default(cuid())
+  referrerEmail         String               @map("referrer_email")
+  technicianName        String               @map("technician_name")
+  technicianEmail       String               @unique @map("technician_email")
+  technicianPhone       String               @map("technician_phone")
+  status                WebsiteReferralStatus @default(PENDING)
+  onboardingCompletedAt DateTime?            @map("onboarding_completed_at")
+  rewardStatus          ReferralRewardStatus @default(PENDING) @map("reward_status")
+  rewardAmountCents     Int                  @default(1000) @map("reward_amount_cents")
+  reviewedBy            String?              @map("reviewed_by")
+  reviewedAt            DateTime?            @map("reviewed_at")
+  reviewNotes           String?              @map("review_notes")
+  earnedAt              DateTime?            @map("earned_at")
+  paidAt                DateTime?            @map("paid_at")
+  createdAt             DateTime             @default(now()) @map("created_at")
+  updatedAt             DateTime             @updatedAt @map("updated_at")
+
+  @@index([referrerEmail])
+  @@index([status, rewardStatus])
+  @@map("website_referrals")
 }
 
 model ProgramSettings {
@@ -370,6 +393,18 @@ enum UserStatus {
 }
 
 enum ReferralStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum ReferralRewardStatus {
+  PENDING
+  EARNED
+  PAID
+}
+
+enum WebsiteReferralStatus {
   PENDING
   APPROVED
   REJECTED
