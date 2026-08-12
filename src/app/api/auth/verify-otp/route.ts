@@ -3,12 +3,20 @@ import { otpService } from '@/lib/otp';
 import { SignJWT } from 'jose';
 import { checkRateLimit } from '@/lib/rate-limit';
 
-const JWT_SECRET = new TextEncoder().encode(
-  process.env.JWT_SECRET!
-);
-
 export async function POST(request: NextRequest) {
   try {
+    const jwtSecret = process.env.JWT_SECRET;
+    if (!jwtSecret || jwtSecret.length < 32) {
+      console.error('otp_verify_configuration_missing', {
+        hasJwtSecret: Boolean(jwtSecret),
+        jwtSecretMeetsMinimumLength: Boolean(jwtSecret && jwtSecret.length >= 32),
+      });
+      return NextResponse.json(
+        { error: 'Admin login is not configured.' },
+        { status: 503 }
+      );
+    }
+
     // Rate limit: 5 verify attempts per minute per IP
     const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
       || request.headers.get('x-real-ip')
@@ -40,6 +48,7 @@ export async function POST(request: NextRequest) {
     }
 
     const user = result.user!;
+    const jwtKey = new TextEncoder().encode(jwtSecret);
 
     // Generate JWT token
     const token = await new SignJWT({
@@ -51,7 +60,7 @@ export async function POST(request: NextRequest) {
       .setProtectedHeader({ alg: 'HS256' })
       .setIssuedAt()
       .setExpirationTime('24h')
-      .sign(JWT_SECRET);
+      .sign(jwtKey);
 
     // Set cookie
     const response = NextResponse.json({
@@ -62,7 +71,7 @@ export async function POST(request: NextRequest) {
         email: user.email,
         name: user.name,
         role: user.role,
-        hasAffiliate: !!user.affiliate
+        hasAffiliate: user.hasAffiliate
       }
     });
 
