@@ -41,10 +41,10 @@ export default function ReferATechnicianPage() {
       <div className="mx-auto max-w-2xl">
         <div className="mb-8 text-center">
           <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-stone-950 px-4 py-2 text-sm text-white">
-            <Sparkles className="h-4 w-4" /> VÉLOURA technician referrals
+            <Sparkles className="h-4 w-4" /> VÉLOURA Beauty on Demand technician referrals
           </div>
           <h1 className="text-4xl font-semibold tracking-tight">Know an exceptional beauty technician?</h1>
-          <p className="mt-3 text-stone-600">Refer them to VÉLOURA. You earn $10 after they are approved and finish all required onboarding.</p>
+          <p className="mt-3 text-stone-600">Refer them to VÉLOURA Beauty on Demand. You earn $10 after they are approved and finish all required onboarding.</p>
         </div>
 
         <Card>
@@ -58,7 +58,7 @@ export default function ReferATechnicianPage() {
                 <CheckCircle2 className="mx-auto h-12 w-12 text-emerald-600" />
                 <div>
                   <h2 className="text-xl font-semibold">Referral received</h2>
-                  <p className="mt-2 text-sm text-stone-600">VÉLOURA will review the technician and track their onboarding.</p>
+                  <p className="mt-2 text-sm text-stone-600">VÉLOURA Beauty on Demand will review the technician and track their onboarding.</p>
                 </div>
                 <Button variant="outline" onClick={() => setSubmitted(false)}>Refer another technician</Button>
               </div>
