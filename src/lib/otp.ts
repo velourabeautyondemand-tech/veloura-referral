@@ -110,7 +110,7 @@ export class OTPService {
       const emailResult = await resendClient.emails.send({
         from: process.env.RESEND_FROM_EMAIL.trim(),
         to: normalizedEmail,
-        subject: 'Your VÉLOURA login code',
+        subject: 'Your VÉLOURA Beauty on Demand login code',
         html: this.generateOTPEmailTemplate(code, admin.name)
       });
 
@@ -312,7 +312,7 @@ export class OTPService {
         <body>
           <div class="container">
             <div class="header">
-              <div class="logo">${process.env.PLATFORM_NAME || 'VÉLOURA'}</div>
+              <div class="logo">${process.env.PLATFORM_NAME || 'VÉLOURA Beauty on Demand'}</div>
               <h1>Your Login Code</h1>
             </div>
             
@@ -332,7 +332,7 @@ export class OTPService {
             
             <div class="footer">
               <p>Best regards,<br>
-              ${process.env.PLATFORM_NAME || 'VÉLOURA'} Team</p>
+              ${process.env.PLATFORM_NAME || 'VÉLOURA Beauty on Demand'} Team</p>
               <p>
                 Need help? Contact us at 
                 <a href="mailto:${process.env.PLATFORM_SUPPORT_EMAIL || 'support@velourabeautyondemand.com'}" style="color: #2563eb;">

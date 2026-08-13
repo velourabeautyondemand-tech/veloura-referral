@@ -30,7 +30,7 @@ export function getWebsiteAdminIdentity(
   return {
     id: `website-admin-${stableId}`,
     email: normalizedEmail,
-    name: 'VÉLOURA Admin',
+    name: 'VÉLOURA Beauty on Demand Admin',
     role: 'ADMIN',
     hasAffiliate: false,
   };
