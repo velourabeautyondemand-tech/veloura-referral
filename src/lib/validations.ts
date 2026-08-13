@@ -9,6 +9,13 @@ export const referralSchema = z.object({
     estimatedValue: z.number().min(0).max(999999999).optional(),
 });
 
+export const websiteReferralSchema = z.object({
+    referrerEmail: z.string().trim().email('Enter a valid referrer email'),
+    technicianName: z.string().trim().min(2, 'Technician name must be at least 2 characters').max(120),
+    technicianEmail: z.string().trim().email('Enter a valid technician email'),
+    technicianPhone: z.string().trim().min(7, 'Enter a valid technician phone number').max(30),
+});
+
 // Affiliate Creation Validation (Admin)
 export const affiliateCreateSchema = z.object({
     name: z.string().min(2, 'Name must be at least 2 characters'),

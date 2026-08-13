@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -25,6 +25,8 @@ import { Target, Mail, ShieldCheck, ArrowLeft, Loader2 } from 'lucide-react';
 
 type Step = 'email' | 'otp';
 
+const PENDING_OTP_EMAIL_KEY = 'veloura.pendingOtpEmail';
+
 export default function LoginPage() {
   const router = useRouter();
   const [step, setStep] = useState<Step>('email');
@@ -33,6 +35,15 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
+
+  useEffect(() => {
+    const pendingEmail = window.sessionStorage.getItem(PENDING_OTP_EMAIL_KEY);
+    if (pendingEmail) {
+      setEmail(pendingEmail);
+      setStep('otp');
+      setMessage('Enter the latest verification code sent to your email.');
+    }
+  }, []);
 
   const handleSendOTP = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -49,10 +60,13 @@ export default function LoginPage() {
       const otpData = await otpRes.json();
 
       if (otpRes.ok && otpData.success) {
+        const normalizedEmail = email.trim().toLowerCase();
+        window.sessionStorage.setItem(PENDING_OTP_EMAIL_KEY, normalizedEmail);
+        setEmail(normalizedEmail);
         setStep('otp');
         setMessage(otpData.message || 'A verification code has been sent to your email.');
       } else {
-        setError(otpData.message || 'Failed to send verification code');
+        setError(otpData.message || otpData.error || 'Failed to send verification code');
       }
     } catch (_e) {
       setError('Something went wrong. Please try again.');
@@ -81,9 +95,10 @@ export default function LoginPage() {
       const data = await res.json();
 
       if (res.ok && data.success) {
+        window.sessionStorage.removeItem(PENDING_OTP_EMAIL_KEY);
         const user = data.user;
         if (user.role === 'ADMIN') {
-          router.push('/admin');
+          router.push('/admin/technician-referrals');
         } else {
           router.push('/affiliate');
         }
@@ -245,6 +260,7 @@ export default function LoginPage() {
                       variant="ghost"
                       size="sm"
                       onClick={() => {
+                        window.sessionStorage.removeItem(PENDING_OTP_EMAIL_KEY);
                         setStep('email');
                         setOtp('');
                         setError('');
