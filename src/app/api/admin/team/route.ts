@@ -1,13 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { getWebsiteAdminFromHeaders, getWebsiteAdminIdentity } from '@/lib/website-admin-auth';
 
 async function verifyAdmin(request: NextRequest) {
   try {
-    const userId = request.headers.get('x-user-id');
-    if (!userId) return null;
-    const user = await prisma.user.findUnique({ where: { id: userId } });
-    if (!user || user.role !== 'ADMIN') return null;
-    return user;
+    // Middleware supplies these headers from the verified session cookie.
+    const session = getWebsiteAdminFromHeaders(request.headers);
+    const email = request.headers.get('x-user-email');
+    const admin = email ? getWebsiteAdminIdentity(email) : null;
+    return session && admin && session.id === admin.id ? admin : null;
   } catch (_e) {
     return null;
   }
@@ -37,10 +38,19 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const { email, name, role, permissions } = body;
+    const { role, permissions } = body;
+    const email = typeof body.email === 'string' ? body.email.trim().toLowerCase() : '';
+    const name = typeof body.name === 'string' ? body.name.trim() : '';
 
     if (!email || !name) {
       return NextResponse.json({ error: 'Email and name are required' }, { status: 400 });
+    }
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return NextResponse.json({ error: 'Enter a valid email address' }, { status: 400 });
+    }
+    if (role !== undefined && !['OWNER', 'ADMIN', 'MANAGER', 'VIEWER'].includes(role)) {
+      return NextResponse.json({ error: 'Choose a valid team role' }, { status: 400 });
     }
 
     // Check if already invited
@@ -80,8 +90,12 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'Team member ID required' }, { status: 400 });
     }
 
+    if (body.status !== undefined && !['PENDING', 'ACTIVE', 'DEACTIVATED'].includes(body.status)) {
+      return NextResponse.json({ error: 'Invalid member status' }, { status: 400 });
+    }
+
     // Only allow specific fields (prevent mass assignment)
-    const allowedFields = ['name', 'email', 'role', 'permissions', 'isActive'];
+    const allowedFields = ['name', 'email', 'role', 'permissions', 'status'];
     const updates: Record<string, any> = {};
     for (const key of allowedFields) {
       if (key in body && body[key] !== undefined) updates[key] = body[key];

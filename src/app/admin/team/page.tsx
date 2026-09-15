@@ -47,40 +47,50 @@ export default function TeamPage() {
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [loadError, setLoadError] = useState('');
+  const [inviteError, setInviteError] = useState('');
+  const [notice, setNotice] = useState('');
   const [form, setForm] = useState({ email: '', name: '', role: 'MANAGER' });
 
   useEffect(() => { fetchMembers(); }, []);
 
   const fetchMembers = async () => {
+    setLoadError('');
     try {
-      const res = await fetch('/api/admin/team');
+      const res = await fetch('/api/admin/team', { signal: AbortSignal.timeout(15000) });
       const data = await res.json();
-      if (data.success) setMembers(data.members || []);
+      if (!res.ok || !data.success) throw new Error(res.status === 401 ? 'Your session has expired. Sign in again to manage your team.' : data.error || 'Unable to load team members. Please try again.');
+      setMembers(data.members || []);
     } catch (error) {
-      console.error('Failed to fetch team members:', error);
+      setLoadError(error instanceof Error ? error.message : 'Unable to load team members. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
   const handleInvite = async () => {
+    if (saving) return;
+    setInviteError('');
+    setNotice('');
     setSaving(true);
     try {
       const res = await fetch('/api/admin/team', {
         method: 'POST',
+        signal: AbortSignal.timeout(15000),
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
+        body: JSON.stringify({ ...form, name: form.name.trim(), email: form.email.trim().toLowerCase() }),
       });
       const data = await res.json();
-      if (data.success) {
+      if (res.ok && data.success) {
         await fetchMembers();
         setDialogOpen(false);
+        setNotice('Team invitation saved as pending. Email delivery and invitation acceptance are not available yet.');
         setForm({ email: '', name: '', role: 'MANAGER' });
       } else {
-        alert(data.error || 'Failed to invite member');
+        setInviteError(res.status === 401 ? 'Your session has expired. Sign in again, then retry.' : data.error || 'Unable to save the invitation. Please try again.');
       }
     } catch (error) {
-      console.error('Failed to invite member:', error);
+      setInviteError('Unable to save the invitation. Check your connection and try again.');
     } finally {
       setSaving(false);
     }
@@ -88,24 +98,28 @@ export default function TeamPage() {
 
   const updateMember = async (id: string, updates: Partial<TeamMember>) => {
     try {
-      await fetch('/api/admin/team', {
+      const res = await fetch('/api/admin/team', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id, ...updates }),
       });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || 'Unable to update member.');
       await fetchMembers();
     } catch (error) {
-      console.error('Failed to update member:', error);
+      setLoadError(error instanceof Error ? error.message : 'Unable to update member. Please try again.');
     }
   };
 
   const deleteMember = async (id: string) => {
     if (!confirm('Remove this team member?')) return;
     try {
-      await fetch(`/api/admin/team?id=${id}`, { method: 'DELETE' });
+      const res = await fetch(`/api/admin/team?id=${encodeURIComponent(id)}`, { method: 'DELETE' });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || 'Unable to remove member.');
       await fetchMembers();
     } catch (error) {
-      console.error('Failed to delete member:', error);
+      setLoadError(error instanceof Error ? error.message : 'Unable to remove member. Please try again.');
     }
   };
 
@@ -147,12 +161,19 @@ export default function TeamPage() {
           <h1 className="text-2xl font-bold tracking-tight">Team Members</h1>
           <p className="text-muted-foreground">Manage who has access to your admin dashboard</p>
         </div>
-        <Button onClick={() => setDialogOpen(true)}>
+        <Button disabled={!!loadError} onClick={() => { setInviteError(''); setDialogOpen(true); }}>
           <UserPlus className="mr-2 h-4 w-4" />
           Invite Member
         </Button>
       </div>
 
+      {notice && <p role="status" className="rounded-md border p-3 text-sm">{notice}</p>}
+      {loadError && <div role="alert" className="rounded-md border border-destructive p-3 text-sm">
+        <p>{loadError}</p>
+        <Button variant="outline" onClick={fetchMembers}>Retry</Button>
+        <a className="ml-3 underline" href="/login">Sign in again</a>
+      </div>}
+      {!loadError && <>
       <div className="grid gap-4 md:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
@@ -245,25 +266,28 @@ export default function TeamPage() {
         </CardContent>
       </Card>
 
+      </>}
       {/* Invite Member Dialog */}
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+      <Dialog open={dialogOpen} onOpenChange={open => { if (!saving) setDialogOpen(open); }}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Invite Team Member</DialogTitle>
-            <DialogDescription>Send an invitation to join your admin team</DialogDescription>
+            <DialogDescription>Save a pending team invitation. Email delivery and acceptance are not available yet.</DialogDescription>
           </DialogHeader>
-          <div className="grid gap-4 py-4">
+          <form onSubmit={event => { event.preventDefault(); void handleInvite(); }}>
+          {inviteError && <p role="alert" className="text-sm text-destructive">{inviteError}</p>}
+          <fieldset disabled={saving} className="grid gap-4 py-4">
             <div className="grid gap-2">
-              <Label>Name *</Label>
-              <Input value={form.name} onChange={e => setForm({...form, name: e.target.value})} placeholder="John Doe" />
+              <Label htmlFor="team-name">Name *</Label>
+              <Input id="team-name" required value={form.name} onChange={e => setForm({...form, name: e.target.value})} placeholder="John Doe" />
             </div>
             <div className="grid gap-2">
-              <Label>Email *</Label>
-              <Input type="email" value={form.email} onChange={e => setForm({...form, email: e.target.value})} placeholder="john@example.com" />
+              <Label htmlFor="team-email">Email *</Label>
+              <Input id="team-email" required type="email" value={form.email} onChange={e => setForm({...form, email: e.target.value})} placeholder="john@example.com" />
             </div>
             <div className="grid gap-2">
               <Label>Role</Label>
-              <Select value={form.role} onValueChange={v => setForm({...form, role: v})}>
+              <Select disabled={saving} value={form.role} onValueChange={v => setForm({...form, role: v})}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {ROLES.map(role => (
@@ -277,13 +301,14 @@ export default function TeamPage() {
                 </SelectContent>
               </Select>
             </div>
-          </div>
+          </fieldset>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
-            <Button onClick={handleInvite} disabled={saving || !form.email || !form.name}>
-              {saving ? 'Inviting...' : 'Send Invite'}
+            <Button type="button" variant="outline" disabled={saving} onClick={() => setDialogOpen(false)}>Cancel</Button>
+            <Button type="submit" disabled={saving || !form.email.trim() || !form.name.trim()}>
+              {saving ? 'Saving...' : 'Save Invitation'}
             </Button>
           </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
     </div>
