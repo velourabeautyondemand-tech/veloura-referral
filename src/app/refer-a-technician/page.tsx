@@ -222,21 +222,21 @@ export default function ReferATechnicianPage() {
                 </div>
                 <CardTitle className="text-xl text-[#5c1734]">Meet our beauty community</CardTitle>
                 <CardDescription className="text-[#805568]">
-                  Follow @veloura_beauty_x on Instagram for VÉLOURA Beauty on Demand updates.
+                  Follow @velourabeautyondemand on Instagram for VÉLOURA Beauty on Demand updates.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-5">
                 <div className="mx-auto hidden max-w-[230px] overflow-hidden rounded-3xl border border-[#f1d4dc] bg-white p-2 shadow-sm sm:block">
                   <Image
                     src="/veloura-instagram-qr.webp"
-                    alt="Instagram QR code for @veloura_beauty_x"
+                    alt="Instagram QR code for @velourabeautyondemand"
                     width={480}
                     height={552}
                     className="h-auto w-full"
                   />
                 </div>
                 <a
-                  href="https://www.instagram.com/veloura_beauty_x/"
+                  href="https://www.instagram.com/velourabeautyondemand/"
                   target="_blank"
                   rel="noreferrer"
                   className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-md border border-[#d98aa1] bg-white px-4 text-sm font-semibold text-[#8d234d] transition-colors hover:bg-[#ffe7ed] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d94f75] focus-visible:ring-offset-2"
