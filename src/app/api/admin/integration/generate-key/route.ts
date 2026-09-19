@@ -1,27 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import * as crypto from 'crypto';
+import { verifyWebsiteAdmin } from '@/lib/website-admin-auth';
 
 /**
  * POST /api/admin/integration/generate-key - Generate API keys for tracking
  */
 export async function POST(request: NextRequest) {
   try {
-    const userId = request.headers.get('x-user-id')!;
-    
-    // Get user from database
-    const user = await prisma.user.findUnique({
-      where: { id: userId }
-    });
+    const user = verifyWebsiteAdmin(request.headers);
 
     if (!user) {
-      return NextResponse.json(
-        { success: false, error: 'User not found' },
-        { status: 401 }
-      );
-    }
-
-    if (user.role !== 'ADMIN') {
       return NextResponse.json(
         { success: false, error: 'Access denied. Admin role required.' },
         { status: 403 }

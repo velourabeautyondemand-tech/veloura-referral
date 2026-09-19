@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { logAuditAction } from '@/lib/audit';
+import { verifyWebsiteAdmin } from '@/lib/website-admin-auth';
 
 /**
  * POST /api/admin/commissions/mature
@@ -27,8 +28,8 @@ export async function POST(request: NextRequest) {
 
         // Method 2: Admin user
         if (!isAuthorized && userId) {
-            const user = await prisma.user.findUnique({ where: { id: userId } });
-            if (user?.role === 'ADMIN' && user?.status === 'ACTIVE') {
+            const user = verifyWebsiteAdmin(request.headers);
+            if (user) {
                 isAuthorized = true;
             }
         }

@@ -1,22 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-
-
-// Verify admin auth with DB check
-async function verifyAdmin(req: NextRequest) {
-  try {
-    const userId = req.headers.get('x-user-id');
-    if (!userId) return null;
-    const user = await prisma.user.findUnique({ where: { id: userId } });
-    if (!user || user.role !== 'ADMIN' || user.status !== 'ACTIVE') return null;
-    return user;
-  } catch (_e) { return null; }
-}
+import { verifyWebsiteAdmin } from '@/lib/website-admin-auth';
 
 // GET /api/admin/settings/profile - Get current user profile
 export async function GET(req: NextRequest) {
   try {
-    const user = await verifyAdmin(req);
+    const user = verifyWebsiteAdmin(req.headers);
     if (!user) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },
@@ -24,29 +13,12 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    const userData = await prisma.user.findUnique({
-      where: { id: user.id },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        profilePicture: true,
-        role: true,
-        createdAt: true,
-        updatedAt: true,
-      },
-    });
-
-    if (!userData) {
-      return NextResponse.json(
-        { success: false, error: 'User not found' },
-        { status: 404 }
-      );
-    }
-
+    // NOTE: admin sign-in has no backing row in the `users` table (see
+    // verifyWebsiteAdmin), so return the session identity directly instead
+    // of looking it up — a DB lookup by this id will always come back empty.
     return NextResponse.json({
       success: true,
-      profile: userData,
+      profile: user,
     });
   } catch (error) {
     console.error('GET /api/admin/settings/profile error:', error);
@@ -60,13 +32,19 @@ export async function GET(req: NextRequest) {
 // PUT /api/admin/settings/profile - Update user profile
 export async function PUT(req: NextRequest) {
   try {
-    const user = await verifyAdmin(req);
+    const user = verifyWebsiteAdmin(req.headers);
     if (!user) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },
         { status: 401 }
       );
     }
+
+    // NOTE: admin sign-in has no backing row in the `users` table (see
+    // verifyWebsiteAdmin), so prisma.user.update below will fail (record
+    // not found) for the admin. Editing the admin's own name/email here
+    // needs a redesign — it can't persist to a `users` row that never
+    // existed — so this endpoint still won't fully work after this fix.
 
     const body = await req.json();
     const { name, email, profilePicture } = body;

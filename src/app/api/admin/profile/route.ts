@@ -1,38 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { verifyWebsiteAdmin } from '@/lib/website-admin-auth';
 
 /**
  * GET /api/admin/profile - Get admin profile
  */
 export async function GET(request: NextRequest) {
   try {
-    const userId = request.headers.get('x-user-id')!;
-    
-    // Get user from database
-    const user = await prisma.user.findUnique({
-      where: { id: userId }
-    });
+    const user = verifyWebsiteAdmin(request.headers);
 
     if (!user) {
-      return NextResponse.json(
-        { success: false, error: 'User not found' },
-        { status: 401 }
-      );
-    }
-
-    if (user.role !== 'ADMIN') {
       return NextResponse.json(
         { success: false, error: 'Access denied. Admin role required.' },
         { status: 403 }
       );
     }
 
-    // Return user profile (without password)
-    const { password, ...userProfile } = user;
-
     return NextResponse.json({
       success: true,
-      user: userProfile,
+      user,
     });
 
   } catch (error) {
@@ -49,26 +35,19 @@ export async function GET(request: NextRequest) {
  */
 export async function PUT(request: NextRequest) {
   try {
-    const userId = request.headers.get('x-user-id')!;
-    
-    // Get user from database
-    const user = await prisma.user.findUnique({
-      where: { id: userId }
-    });
+    const user = verifyWebsiteAdmin(request.headers);
 
     if (!user) {
-      return NextResponse.json(
-        { success: false, error: 'User not found' },
-        { status: 401 }
-      );
-    }
-
-    if (user.role !== 'ADMIN') {
       return NextResponse.json(
         { success: false, error: 'Access denied. Admin role required.' },
         { status: 403 }
       );
     }
+
+    // NOTE: admin sign-in has no backing row in the `users` table (see
+    // verifyWebsiteAdmin), so there is nothing here for prisma.user.update
+    // to persist to. This will currently fail below with a 500 until admin
+    // profile editing is redesigned to not depend on a `users` row.
 
     // Get update data from request
     const body = await request.json();
