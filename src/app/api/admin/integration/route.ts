@@ -1,26 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { verifyWebsiteAdmin } from '@/lib/website-admin-auth';
 
 /**
  * GET /api/admin/integration - Get integration settings
  */
 export async function GET(request: NextRequest) {
   try {
-    const userId = request.headers.get('x-user-id')!;
-    
-    // Get user from database
-    const user = await prisma.user.findUnique({
-      where: { id: userId }
-    });
+    const user = verifyWebsiteAdmin(request.headers);
 
     if (!user) {
-      return NextResponse.json(
-        { success: false, error: 'User not found' },
-        { status: 401 }
-      );
-    }
-
-    if (user.role !== 'ADMIN') {
       return NextResponse.json(
         { success: false, error: 'Access denied. Admin role required.' },
         { status: 403 }
@@ -59,21 +48,9 @@ export async function GET(request: NextRequest) {
  */
 export async function PUT(request: NextRequest) {
   try {
-    const userId = request.headers.get('x-user-id')!;
-    
-    // Get user from database
-    const user = await prisma.user.findUnique({
-      where: { id: userId }
-    });
+    const user = verifyWebsiteAdmin(request.headers);
 
     if (!user) {
-      return NextResponse.json(
-        { success: false, error: 'User not found' },
-        { status: 401 }
-      );
-    }
-
-    if (user.role !== 'ADMIN') {
       return NextResponse.json(
         { success: false, error: 'Access denied. Admin role required.' },
         { status: 403 }

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { UserStatus } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
+import { verifyWebsiteAdmin } from '@/lib/website-admin-auth';
 
 
 // Update affiliate status
@@ -10,13 +11,9 @@ export async function PATCH(
 ) {
   try {
     const params = await context.params;
-    const userId = request.headers.get('x-user-id')!;
-    
-    const user = await prisma.user.findUnique({
-      where: { id: userId }
-    });
+    const user = verifyWebsiteAdmin(request.headers);
 
-    if (!user || user.role !== 'ADMIN') {
+    if (!user) {
       return NextResponse.json(
         { error: 'Admin access required' },
         { status: 403 }
@@ -105,13 +102,9 @@ export async function DELETE(
 ) {
   try {
     const params = await context.params;
-    const userId = request.headers.get('x-user-id')!;
-    
-    const user = await prisma.user.findUnique({
-      where: { id: userId }
-    });
+    const user = verifyWebsiteAdmin(request.headers);
 
-    if (!user || user.role !== 'ADMIN') {
+    if (!user) {
       return NextResponse.json(
         { error: 'Admin access required' },
         { status: 403 }

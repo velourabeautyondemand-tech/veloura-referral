@@ -1,14 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { getWebsiteAdminFromHeaders, getWebsiteAdminIdentity } from '@/lib/website-admin-auth';
 
-
+// Admin login is OTP + ADMIN_EMAILS based (no row in the `users` table), so
+// this re-derives identity from the verified session headers instead of
+// looking the id up in the database — matching the pattern used by
+// /api/admin/team.
 async function verifyAdmin(request: NextRequest) {
   try {
-    const userId = request.headers.get('x-user-id');
-    if (!userId) return null;
-    const user = await prisma.user.findUnique({ where: { id: userId } });
-    if (!user || user.role !== 'ADMIN') return null;
-    return user;
+    const session = getWebsiteAdminFromHeaders(request.headers);
+    const email = request.headers.get('x-user-email');
+    const admin = email ? getWebsiteAdminIdentity(email) : null;
+    return session && admin && session.id === admin.id ? admin : null;
   } catch (_e) { return null; }
 }
 

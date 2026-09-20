@@ -2,17 +2,14 @@ import { NextRequest, NextResponse } from 'next/server';
 import { revalidateTag } from 'next/cache';
 import { prisma } from '@/lib/prisma';
 import { logAuditAction } from '@/lib/audit';
+import { verifyWebsiteAdmin } from '@/lib/website-admin-auth';
 
 
 export async function GET(request: NextRequest) {
   try {
-    const userId = request.headers.get('x-user-id')!;
+    const user = verifyWebsiteAdmin(request.headers);
 
-    const user = await prisma.user.findUnique({
-      where: { id: userId }
-    });
-
-    if (!user || user.role !== 'ADMIN') {
+    if (!user) {
       return NextResponse.json(
         { error: 'Admin access required' },
         { status: 403 }
@@ -74,13 +71,9 @@ export async function GET(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   try {
-    const userId = request.headers.get('x-user-id')!;
+    const user = verifyWebsiteAdmin(request.headers);
 
-    const user = await prisma.user.findUnique({
-      where: { id: userId }
-    });
-
-    if (!user || user.role !== 'ADMIN') {
+    if (!user) {
       return NextResponse.json(
         { error: 'Admin access required' },
         { status: 403 }
@@ -154,13 +147,9 @@ export async function PUT(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const userId = request.headers.get('x-user-id')!;
+    const user = verifyWebsiteAdmin(request.headers);
 
-    const user = await prisma.user.findUnique({
-      where: { id: userId }
-    });
-
-    if (!user || user.role !== 'ADMIN') {
+    if (!user) {
       return NextResponse.json(
         { error: 'Admin access required' },
         { status: 403 }
