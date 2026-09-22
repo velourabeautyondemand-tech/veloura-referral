@@ -64,6 +64,7 @@ export async function middleware(request: NextRequest) {
         requestHeaders.set('x-user-id', payload.userId as string);
         requestHeaders.set('x-user-role', userRole);
         requestHeaders.set('x-user-email', payload.email as string);
+        requestHeaders.set('x-user-name', (payload.name as string) || '');
 
         return NextResponse.next({ request: { headers: requestHeaders } });
     } catch (error) {
