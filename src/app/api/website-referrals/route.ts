@@ -29,6 +29,7 @@ export async function POST(request: NextRequest) {
   try {
     const referral = await prisma.websiteReferral.create({
       data: {
+        referrerName: parsed.data.referrerName.trim(),
         referrerEmail: normalizeEmail(parsed.data.referrerEmail),
         technicianName: parsed.data.technicianName.trim(),
         technicianEmail: normalizeEmail(parsed.data.technicianEmail),
