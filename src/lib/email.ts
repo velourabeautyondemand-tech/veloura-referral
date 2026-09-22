@@ -82,6 +82,14 @@ export interface CommissionNotificationData {
   transactionId: string;
 }
 
+export interface TeamInvitationData {
+  email: string;
+  name: string;
+  role: string;
+  inviterName: string;
+  acceptUrl: string;
+}
+
 class EmailService {
   private defaultFrom = process.env.RESEND_FROM_EMAIL || 'Refferq <noreply@refferq.com>';
 
@@ -878,6 +886,95 @@ class EmailService {
       </html>
       `,
     });
+  }
+
+  private generateTeamInvitationHTML(data: TeamInvitationData): string {
+    const roleLabels: Record<string, string> = {
+      OWNER: 'Owner',
+      ADMIN: 'Admin',
+      MANAGER: 'Manager',
+      VIEWER: 'Viewer',
+    };
+    const roleLabel = roleLabels[data.role] || this.escapeHtml(data.role);
+
+    return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>You're invited to VÉLOURA Beauty on Demand</title>
+      <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #4b1830; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #fff7f8; }
+        .container { background-color: white; padding: 40px; border-radius: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.06); }
+        .header { text-align: center; margin-bottom: 24px; }
+        .logo { font-size: 20px; font-weight: bold; color: #8d234d; margin-bottom: 6px; }
+        .role-badge { display: inline-block; background-color: #ffe3ea; color: #a92f59; padding: 6px 14px; border-radius: 999px; font-size: 13px; font-weight: 600; margin: 16px 0; }
+        .button { display: inline-block; background-color: #b8325a; color: #ffffff !important; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: 600; margin: 20px 0; }
+        .expiry { color: #8a6070; font-size: 13px; margin-top: 20px; }
+        .footer { text-align: center; margin-top: 30px; font-size: 13px; color: #8a6070; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <div class="logo">VÉLOURA Beauty on Demand</div>
+          <h1 style="font-size: 22px; margin: 8px 0 0;">You've been invited to the admin dashboard</h1>
+        </div>
+
+        <p>Hi ${this.escapeHtml(data.name)},</p>
+        <p>${this.escapeHtml(data.inviterName)} invited you to join the VÉLOURA Beauty on Demand admin dashboard.</p>
+
+        <div style="text-align: center;">
+          <span class="role-badge">Role: ${roleLabel}</span>
+        </div>
+
+        <div style="text-align: center;">
+          <a href="${data.acceptUrl}" class="button">Accept invitation</a>
+        </div>
+
+        <p style="font-size: 13px; color: #8a6070;">Or copy and paste this link into your browser:<br>
+          <a href="${data.acceptUrl}" style="color: #8d234d; word-break: break-all;">${data.acceptUrl}</a>
+        </p>
+
+        <p class="expiry">This invitation link expires in 7 days. Once accepted, you'll sign in with a one-time code sent to this email address - no password required.</p>
+
+        <div class="footer">
+          <p>If you weren't expecting this invitation, you can safely ignore this email.</p>
+          <p>VÉLOURA Beauty on Demand Team</p>
+        </div>
+      </div>
+    </body>
+    </html>
+    `;
+  }
+
+  // Sends from a dedicated team@ sender (not the default RESEND_FROM_EMAIL
+  // used for OTP login codes) so invitations are visibly distinct in the
+  // recipient's inbox. Uses the same verified velourabeautyondemand.com
+  // domain, so it requires no new DNS/Resend setup - and, since this is a
+  // send-only identity, no one needs to actually read mail sent there.
+  async sendTeamInvitation(data: TeamInvitationData): Promise<{ success: boolean; message: string }> {
+    try {
+      const { Resend } = await import('resend');
+      const resend = new Resend(process.env.RESEND_API_KEY);
+      const result = await resend.emails.send({
+        from: 'VÉLOURA Team <team@velourabeautyondemand.com>',
+        to: data.email,
+        subject: `${data.inviterName} invited you to VÉLOURA Beauty on Demand`,
+        html: this.generateTeamInvitationHTML(data),
+      });
+
+      if (result.error) {
+        console.error('Team invitation email rejected:', result.error);
+        return { success: false, message: 'Failed to send invitation email' };
+      }
+
+      return { success: true, message: 'Invitation email sent successfully' };
+    } catch (error) {
+      console.error('Failed to send team invitation email:', error);
+      return { success: false, message: 'Failed to send invitation email' };
+    }
   }
 
   async sendCustomEmail(to: string, subject: string, html: string): Promise<{ success: boolean; message: string }> {
