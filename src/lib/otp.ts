@@ -1,7 +1,7 @@
 import { prisma } from './prisma';
 import crypto from 'crypto';
 import { evaluateOtpAttempt, MAX_OTP_ATTEMPTS } from './otp-attempts';
-import { getWebsiteAdminIdentity, type WebsiteAdminIdentity } from './website-admin-auth';
+import { getAdminIdentityForEmail, type WebsiteAdminIdentity } from './website-admin-auth';
 
 type OtpFailureStage =
   | 'configuration'
@@ -51,7 +51,7 @@ export class OTPService {
       }
 
       stage = 'admin_authorization';
-      const admin = getWebsiteAdminIdentity(normalizedEmail);
+      const admin = await getAdminIdentityForEmail(normalizedEmail);
       if (!admin) {
         return {
           success: false,
@@ -150,7 +150,7 @@ export class OTPService {
   }> {
     try {
       const normalizedEmail = email.trim().toLowerCase();
-      const admin = getWebsiteAdminIdentity(normalizedEmail);
+      const admin = await getAdminIdentityForEmail(normalizedEmail);
       if (!admin) {
         return {
           success: false,
