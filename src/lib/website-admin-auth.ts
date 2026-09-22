@@ -5,6 +5,7 @@ export type WebsiteAdminIdentity = {
   email: string;
   name: string;
   role: 'ADMIN';
+  status: 'ACTIVE';
   hasAffiliate: false;
 };
 
@@ -32,6 +33,7 @@ export function getWebsiteAdminIdentity(
     email: normalizedEmail,
     name: 'VÉLOURA Beauty on Demand Admin',
     role: 'ADMIN',
+    status: 'ACTIVE',
     hasAffiliate: false,
   };
 }
