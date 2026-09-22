@@ -8,6 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 
 type Referral = {
   id: string;
+  referrerName: string | null;
   referrerEmail: string;
   technicianName: string;
   technicianEmail: string;
@@ -74,7 +75,7 @@ export default function TechnicianReferralsPage() {
                 {referrals.map((referral) => (
                   <TableRow key={referral.id}>
                     <TableCell><p className="font-medium">{referral.technicianName}</p><p className="text-xs text-muted-foreground">{referral.technicianEmail} · {referral.technicianPhone}</p></TableCell>
-                    <TableCell>{referral.referrerEmail}</TableCell>
+                    <TableCell><p className="font-medium">{referral.referrerName || '—'}</p><p className="text-xs text-muted-foreground">{referral.referrerEmail}</p></TableCell>
                     <TableCell><Badge variant={referral.status === 'REJECTED' ? 'destructive' : referral.status === 'APPROVED' ? 'default' : 'secondary'}>{referral.status}</Badge></TableCell>
                     <TableCell>{referral.onboardingCompletedAt ? 'Complete' : 'Pending'}</TableCell>
                     <TableCell><Badge variant={referral.rewardStatus === 'PAID' ? 'default' : 'outline'}>{referral.rewardStatus} · ${(referral.rewardAmountCents / 100).toFixed(2)}</Badge></TableCell>
