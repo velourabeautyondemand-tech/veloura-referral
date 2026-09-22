@@ -42,6 +42,14 @@ export default function LoginPage() {
       setEmail(pendingEmail);
       setStep('otp');
       setMessage('Enter the latest verification code sent to your email.');
+      return;
+    }
+    // Prefill from ?email= (e.g. after accepting a team invitation), read
+    // directly from the URL rather than next/navigation's useSearchParams
+    // so this page never needs a Suspense boundary at build time.
+    const prefillEmail = new URLSearchParams(window.location.search).get('email');
+    if (prefillEmail) {
+      setEmail(prefillEmail);
     }
   }, []);
 
