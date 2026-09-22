@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { logAuditAction } from '@/lib/audit';
-import { getWebsiteAdminFromHeaders, getWebsiteAdminIdentity } from '@/lib/website-admin-auth';
+import { verifyWebsiteAdmin } from '@/lib/website-admin-auth';
 
 
 interface JWTPayload {
@@ -10,23 +10,15 @@ interface JWTPayload {
   role: string;
 }
 
-// Helper: Verify admin auth from DB (not just JWT payload)
-// Helper: Verify admin auth from DB (middleware already checked role, but we double check status)
-// Admin login is OTP + ADMIN_EMAILS based (no row in the `users` table), so
-// this re-derives identity from the verified session headers instead of
-// looking the id up in the database — matching the pattern used by
-// /api/admin/team.
+// Helper: Verify admin auth. Admin sign-in is OTP based (owner via
+// ADMIN_EMAILS, or an invited-and-accepted team_members row) with no row in
+// the `users` table, so this trusts the verified session headers the
+// middleware sets rather than looking the caller up in the database —
+// matching the pattern used by /api/admin/team.
 async function verifyAdmin(request: NextRequest) {
   try {
-    const session = getWebsiteAdminFromHeaders(request.headers);
-    if (!session) return { error: 'Unauthorized', status: 401 };
-
-    const email = request.headers.get('x-user-email');
-    const admin = email ? getWebsiteAdminIdentity(email) : null;
-
-    if (!admin || session.id !== admin.id) {
-      return { error: 'Forbidden', status: 403 };
-    }
+    const admin = verifyWebsiteAdmin(request.headers);
+    if (!admin) return { error: 'Unauthorized', status: 401 };
     return { user: admin };
   } catch (err) {
     return { error: 'Authentication internal error', status: 500 };
