@@ -187,6 +187,7 @@ model Otp {
 
 model WebsiteReferral {
   id                    String               @id @default(cuid())
+  referrerName          String?              @map("referrer_name")
   referrerEmail         String               @map("referrer_email")
   technicianName        String               @map("technician_name")
   technicianEmail       String               @unique @map("technician_email")
