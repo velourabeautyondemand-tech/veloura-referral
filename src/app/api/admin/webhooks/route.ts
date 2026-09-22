@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import crypto from 'crypto';
 import { AVAILABLE_EVENTS, triggerWebhook, type WebhookEventType } from '@/lib/webhooks';
-import { getWebsiteAdminFromHeaders, getWebsiteAdminIdentity } from '@/lib/website-admin-auth';
+import { verifyWebsiteAdmin } from '@/lib/website-admin-auth';
 
 
 // ─── SSRF Protection: Validate webhook URLs ────────────────────
@@ -65,20 +65,17 @@ function validateWebhookUrl(urlString: string): { valid: boolean; error?: string
   return { valid: true };
 }
 
-// Helper: Verify admin auth. Admin login is OTP + ADMIN_EMAILS based (no row
-// in the `users` table), so this re-derives identity from the verified
-// session headers instead of looking the id up in the database — matching
-// the pattern used by /api/admin/team.
+// Helper: Verify admin auth. Admin sign-in is OTP based (owner via
+// ADMIN_EMAILS, or an invited-and-accepted team_members row) with no row in
+// the `users` table, so this trusts the verified session headers the
+// middleware sets rather than looking the caller up in the database —
+// matching the pattern used by /api/admin/team.
 async function verifyAdminAuth(request: NextRequest) {
   try {
-    const session = getWebsiteAdminFromHeaders(request.headers);
-    const email = request.headers.get('x-user-email');
-    const admin = email ? getWebsiteAdminIdentity(email) : null;
-
-    if (!session || !admin || session.id !== admin.id) {
+    const admin = verifyWebsiteAdmin(request.headers);
+    if (!admin) {
       return { error: 'Admin access required', status: 403 };
     }
-
     return { user: admin };
   } catch (_error) {
     return { error: 'Invalid token', status: 401 };
