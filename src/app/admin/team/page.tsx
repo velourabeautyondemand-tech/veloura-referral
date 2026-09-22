@@ -272,6 +272,11 @@ export default function TeamPage() {
                             </Button>
                           </>
                         )}
+                        {member.status === 'DEACTIVATED' && (
+                          <Button variant="ghost" size="sm" disabled={resendingId === member.id} onClick={() => resendInvite(member.id)}>
+                            {resendingId === member.id ? 'Sending…' : 'Send Invite'}
+                          </Button>
+                        )}
                         {member.status === 'ACTIVE' && member.role !== 'OWNER' && (
                           <Button variant="ghost" size="sm" onClick={() => updateMember(member.id, { status: 'DEACTIVATED' })}>
                             Deactivate
