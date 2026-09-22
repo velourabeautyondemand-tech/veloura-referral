@@ -1,17 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
+import crypto from 'crypto';
 import { prisma } from '@/lib/prisma';
-import { getWebsiteAdminFromHeaders, getWebsiteAdminIdentity } from '@/lib/website-admin-auth';
+import { verifyWebsiteAdmin } from '@/lib/website-admin-auth';
+import { emailService } from '@/lib/email';
+
+const INVITATION_EXPIRY_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
+
+function buildAcceptUrl(token: string): string {
+  const base = process.env.NEXT_PUBLIC_APP_URL || 'https://veloura-referral.vercel.app';
+  return `${base.replace(/\/$/, '')}/team-invite/accept?token=${token}`;
+}
 
 async function verifyAdmin(request: NextRequest) {
-  try {
-    // Middleware supplies these headers from the verified session cookie.
-    const session = getWebsiteAdminFromHeaders(request.headers);
-    const email = request.headers.get('x-user-email');
-    const admin = email ? getWebsiteAdminIdentity(email) : null;
-    return session && admin && session.id === admin.id ? admin : null;
-  } catch (_e) {
-    return null;
-  }
+  return verifyWebsiteAdmin(request.headers);
 }
 
 // GET: List team members
@@ -59,6 +60,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'This email has already been invited' }, { status: 400 });
     }
 
+    const invitationToken = crypto.randomBytes(32).toString('hex');
+    const invitationTokenExpiresAt = new Date(Date.now() + INVITATION_EXPIRY_MS);
+
     const member = await prisma.teamMember.create({
       data: {
         email: email.toLowerCase(),
@@ -67,10 +71,25 @@ export async function POST(request: NextRequest) {
         permissions: permissions || [],
         invitedBy: user.id,
         status: 'PENDING',
+        invitationToken,
+        invitationTokenExpiresAt,
       },
     });
 
-    return NextResponse.json({ success: true, member });
+    const emailResult = await emailService.sendTeamInvitation({
+      email: member.email,
+      name: member.name,
+      role: member.role,
+      inviterName: user.name,
+      acceptUrl: buildAcceptUrl(invitationToken),
+    });
+
+    return NextResponse.json({
+      success: true,
+      member,
+      emailSent: emailResult.success,
+      ...(emailResult.success ? {} : { emailWarning: 'Team member saved, but the invitation email could not be sent. Use Resend to try again.' }),
+    });
   } catch (error) {
     console.error('Admin team POST error:', error);
     return NextResponse.json({ error: 'Failed to invite team member' }, { status: 500 });
@@ -92,6 +111,41 @@ export async function PUT(request: NextRequest) {
 
     if (body.status !== undefined && !['PENDING', 'ACTIVE', 'DEACTIVATED'].includes(body.status)) {
       return NextResponse.json({ error: 'Invalid member status' }, { status: 400 });
+    }
+
+    // Re-send an invitation: refreshes the token/expiry (in case the first
+    // one expired or the email never arrived) and re-sends the email.
+    // Doesn't touch name/role/permissions.
+    if (body.resendInvite === true) {
+      const existing = await prisma.teamMember.findUnique({ where: { id } });
+      if (!existing) {
+        return NextResponse.json({ error: 'Team member not found' }, { status: 404 });
+      }
+      if (existing.status !== 'PENDING') {
+        return NextResponse.json({ error: 'Only pending invitations can be resent' }, { status: 400 });
+      }
+
+      const invitationToken = crypto.randomBytes(32).toString('hex');
+      const invitationTokenExpiresAt = new Date(Date.now() + INVITATION_EXPIRY_MS);
+      const member = await prisma.teamMember.update({
+        where: { id },
+        data: { invitationToken, invitationTokenExpiresAt },
+      });
+
+      const emailResult = await emailService.sendTeamInvitation({
+        email: member.email,
+        name: member.name,
+        role: member.role,
+        inviterName: user.name,
+        acceptUrl: buildAcceptUrl(invitationToken),
+      });
+
+      return NextResponse.json({
+        success: true,
+        member,
+        emailSent: emailResult.success,
+        ...(emailResult.success ? {} : { emailWarning: 'Could not send the invitation email. Please try again.' }),
+      });
     }
 
     // Only allow specific fields (prevent mass assignment)
