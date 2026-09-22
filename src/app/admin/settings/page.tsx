@@ -27,7 +27,7 @@ interface AdminProfile {
   email: string;
   role: string;
   status: string;
-  createdAt: string;
+  createdAt?: string;
 }
 
 export default function SettingsPage() {
@@ -171,19 +171,21 @@ export default function SettingsPage() {
                 </div>
                 <CheckCircle2 className="h-4 w-4 text-green-500" />
               </div>
-              <div className="flex items-center justify-between rounded-md border p-3">
-                <div>
-                  <p className="text-sm font-medium">Account Created</p>
-                  <p className="text-sm text-muted-foreground">
-                    {new Date(profile.createdAt).toLocaleDateString('en-IN', {
-                      day: 'numeric',
-                      month: 'long',
-                      year: 'numeric',
-                    })}
-                  </p>
+              {profile.createdAt && (
+                <div className="flex items-center justify-between rounded-md border p-3">
+                  <div>
+                    <p className="text-sm font-medium">Account Created</p>
+                    <p className="text-sm text-muted-foreground">
+                      {new Date(profile.createdAt).toLocaleDateString('en-IN', {
+                        day: 'numeric',
+                        month: 'long',
+                        year: 'numeric',
+                      })}
+                    </p>
+                  </div>
+                  <Key className="h-4 w-4 text-muted-foreground" />
                 </div>
-                <Key className="h-4 w-4 text-muted-foreground" />
-              </div>
+              )}
             </div>
           )}
         </CardContent>
