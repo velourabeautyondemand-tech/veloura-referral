@@ -16,7 +16,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
-const initialForm = { referrerEmail: '', technicianName: '', technicianEmail: '', technicianPhone: '' };
+const initialForm = { referrerName: '', referrerEmail: '', technicianName: '', technicianEmail: '', technicianPhone: '' };
 
 const referralSteps = [
   {
@@ -103,7 +103,7 @@ export default function ReferATechnicianPage() {
             <CardHeader className="space-y-2 px-6 pb-5 pt-7 sm:px-8">
               <CardTitle className="text-2xl text-[#5c1734]">Submit a technician referral</CardTitle>
               <CardDescription className="text-[#805568]">
-                Enter your email and the technician’s contact information. No account is required.
+                Enter your name and email, and the technician’s contact information. No account is required.
               </CardDescription>
             </CardHeader>
             <CardContent className="px-6 pb-8 sm:px-8">
@@ -130,7 +130,18 @@ export default function ReferATechnicianPage() {
               ) : (
                 <form className="space-y-5" onSubmit={submit}>
                   <div className="space-y-2">
-                    <Label htmlFor="referrerEmail" className="text-[#5c1734]">Your email</Label>
+                    <Label htmlFor="referrerName" className="text-[#5c1734]">Who referred you</Label>
+                    <Input
+                      id="referrerName"
+                      required
+                      autoComplete="name"
+                      value={form.referrerName}
+                      onChange={(e) => setForm({ ...form, referrerName: e.target.value })}
+                      className="h-12 border-[#e9c4ce] bg-white focus-visible:ring-[#d94f75]"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="referrerEmail" className="text-[#5c1734]">Referrer email</Label>
                     <Input
                       id="referrerEmail"
                       type="email"
