@@ -50,6 +50,7 @@ export default function TeamPage() {
   const [loadError, setLoadError] = useState('');
   const [inviteError, setInviteError] = useState('');
   const [notice, setNotice] = useState('');
+  const [resendingId, setResendingId] = useState<string | null>(null);
   const [form, setForm] = useState({ email: '', name: '', role: 'MANAGER' });
 
   useEffect(() => { fetchMembers(); }, []);
@@ -84,7 +85,7 @@ export default function TeamPage() {
       if (res.ok && data.success) {
         await fetchMembers();
         setDialogOpen(false);
-        setNotice('Team invitation saved as pending. Email delivery and invitation acceptance are not available yet.');
+        setNotice(data.emailSent ? 'Invitation sent! They\'ll receive an email with a link to accept.' : (data.emailWarning || 'Invitation saved, but the email could not be sent. Use Resend to try again.'));
         setForm({ email: '', name: '', role: 'MANAGER' });
       } else {
         setInviteError(res.status === 401 ? 'Your session has expired. Sign in again, then retry.' : data.error || 'Unable to save the invitation. Please try again.');
@@ -108,6 +109,26 @@ export default function TeamPage() {
       await fetchMembers();
     } catch (error) {
       setLoadError(error instanceof Error ? error.message : 'Unable to update member. Please try again.');
+    }
+  };
+
+  const resendInvite = async (id: string) => {
+    setNotice('');
+    setResendingId(id);
+    try {
+      const res = await fetch('/api/admin/team', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, resendInvite: true }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || 'Unable to resend the invitation.');
+      setNotice(data.emailSent ? 'Invitation email resent.' : (data.emailWarning || 'Invitation saved, but the email could not be sent.'));
+      await fetchMembers();
+    } catch (error) {
+      setLoadError(error instanceof Error ? error.message : 'Unable to resend the invitation. Please try again.');
+    } finally {
+      setResendingId(null);
     }
   };
 
@@ -242,9 +263,14 @@ export default function TeamPage() {
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-1">
                         {member.status === 'PENDING' && (
-                          <Button variant="ghost" size="sm" onClick={() => updateMember(member.id, { status: 'ACTIVE' })}>
-                            Activate
-                          </Button>
+                          <>
+                            <Button variant="ghost" size="sm" disabled={resendingId === member.id} onClick={() => resendInvite(member.id)}>
+                              {resendingId === member.id ? 'Sending…' : 'Resend'}
+                            </Button>
+                            <Button variant="ghost" size="sm" onClick={() => updateMember(member.id, { status: 'ACTIVE' })}>
+                              Activate
+                            </Button>
+                          </>
                         )}
                         {member.status === 'ACTIVE' && member.role !== 'OWNER' && (
                           <Button variant="ghost" size="sm" onClick={() => updateMember(member.id, { status: 'DEACTIVATED' })}>
@@ -272,7 +298,7 @@ export default function TeamPage() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Invite Team Member</DialogTitle>
-            <DialogDescription>Save a pending team invitation. Email delivery and acceptance are not available yet.</DialogDescription>
+            <DialogDescription>They'll receive an email with a secure link to accept and sign in.</DialogDescription>
           </DialogHeader>
           <form onSubmit={event => { event.preventDefault(); void handleInvite(); }}>
           {inviteError && <p role="alert" className="text-sm text-destructive">{inviteError}</p>}
