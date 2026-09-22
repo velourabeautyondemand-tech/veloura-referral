@@ -696,18 +696,23 @@ model Program {
 // ───────────────────────────────────────────────
 
 model TeamMember {
-  id          String     @id @default(cuid())
-  email       String
-  name        String
-  role        TeamRole   @default(VIEWER)
-  permissions Json       @default("[]") // granular permissions
-  invitedBy   String     @map("invited_by")
-  userId      String?    @map("user_id") // linked user after acceptance
-  status      TeamMemberStatus @default(PENDING)
-  invitedAt   DateTime   @default(now()) @map("invited_at")
-  acceptedAt  DateTime?  @map("accepted_at")
-  createdAt   DateTime   @default(now()) @map("created_at")
-  updatedAt   DateTime   @updatedAt @map("updated_at")
+  id                       String           @id @default(cuid())
+  email                    String
+  name                     String
+  role                     TeamRole         @default(VIEWER)
+  permissions              Json             @default("[]") // granular permissions
+  invitedBy                String           @map("invited_by")
+  userId                   String?          @map("user_id") // linked user after acceptance
+  status                   TeamMemberStatus @default(PENDING)
+  invitedAt                DateTime         @default(now()) @map("invited_at")
+  acceptedAt               DateTime?        @map("accepted_at")
+  // Secure, single-use token emailed to the invitee; set on invite, cleared on
+  // acceptance. Lets /team-invite/accept confirm the invite without the
+  // invitee needing to already be signed in.
+  invitationToken          String?          @unique @map("invitation_token")
+  invitationTokenExpiresAt DateTime?        @map("invitation_token_expires_at")
+  createdAt                DateTime         @default(now()) @map("created_at")
+  updatedAt                DateTime         @updatedAt @map("updated_at")
 
   @@unique([email])
   @@map("team_members")
