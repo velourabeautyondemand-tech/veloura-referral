@@ -10,6 +10,7 @@ export const referralSchema = z.object({
 });
 
 export const websiteReferralSchema = z.object({
+    referrerName: z.string().trim().min(2, 'Enter the name of who referred you').max(120),
     referrerEmail: z.string().trim().email('Enter a valid referrer email'),
     technicianName: z.string().trim().min(2, 'Technician name must be at least 2 characters').max(120),
     technicianEmail: z.string().trim().email('Enter a valid technician email'),
