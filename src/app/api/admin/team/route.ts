@@ -121,15 +121,18 @@ export async function PUT(request: NextRequest) {
       if (!existing) {
         return NextResponse.json({ error: 'Team member not found' }, { status: 404 });
       }
-      if (existing.status !== 'PENDING') {
-        return NextResponse.json({ error: 'Only pending invitations can be resent' }, { status: 400 });
+      if (existing.status === 'ACTIVE') {
+        return NextResponse.json({ error: 'This member is already active and signs in normally — no invite email needed' }, { status: 400 });
       }
 
+      // Works for PENDING (first email never arrived / expired) and
+      // DEACTIVATED (re-inviting someone who was deactivated) alike —
+      // resetting status back to PENDING so a fresh accept link is valid.
       const invitationToken = crypto.randomBytes(32).toString('hex');
       const invitationTokenExpiresAt = new Date(Date.now() + INVITATION_EXPIRY_MS);
       const member = await prisma.teamMember.update({
         where: { id },
-        data: { invitationToken, invitationTokenExpiresAt },
+        data: { status: 'PENDING', invitationToken, invitationTokenExpiresAt },
       });
 
       const emailResult = await emailService.sendTeamInvitation({
