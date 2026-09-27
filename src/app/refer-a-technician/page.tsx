@@ -31,7 +31,7 @@ const referralSteps = [
   },
   {
     title: 'Earn the $10 reward',
-    description: 'The reward is earned only after approval and all required onboarding are complete.',
+    description: 'The reward is earned as soon as VÉLOURA approves the technician, and is paid out weekly.',
     icon: Gift,
   },
 ];
@@ -102,8 +102,8 @@ export default function ReferATechnicianPage() {
             Know an exceptional beauty technician?
           </h1>
           <p className="mx-auto mt-4 max-w-2xl text-base leading-7 text-[#744357] sm:text-lg">
-            Refer them to VÉLOURA Beauty on Demand. You earn <strong className="text-[#a92f59]">$10</strong> only
-            after they are approved and complete all required onboarding.
+            Refer them to VÉLOURA Beauty on Demand. You earn <strong className="text-[#a92f59]">$10</strong> once
+            they are approved by our team.
           </p>
           <p className="mt-2 text-sm font-medium text-[#8a6070]">
             Submitting a referral alone does not earn a reward.
@@ -140,7 +140,7 @@ export default function ReferATechnicianPage() {
                     <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[#744357]">
                       {referrer
                         ? 'Thank you for applying. The VÉLOURA Beauty on Demand team will review your application and contact you about next steps.'
-                        : 'VÉLOURA Beauty on Demand will review the technician and track their onboarding. The reward remains pending until both requirements are complete.'}
+                        : 'VÉLOURA Beauty on Demand will review the technician. The reward remains pending until they are approved.'}
                     </p>
                   </div>
                   {!referrer && (
@@ -292,8 +292,8 @@ export default function ReferATechnicianPage() {
         </div>
 
         <footer className="mx-auto mt-8 max-w-3xl text-center text-xs leading-5 text-[#8a6070]">
-          Rewards begin as pending. A $10 reward becomes earned only after the referred technician is approved
-          and completes all required onboarding, and can later be marked paid by an administrator.
+          Rewards begin as pending. A $10 reward is earned once the referred technician is approved by VÉLOURA,
+          and earned rewards are paid out weekly.
         </footer>
       </div>
     </main>
