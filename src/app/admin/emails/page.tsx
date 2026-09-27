@@ -443,7 +443,7 @@ export default function EmailsPage() {
                     <TableCell className="text-sm">{t.sentCount}</TableCell>
                     <TableCell className="text-sm text-muted-foreground">
                       {t.lastSent
-                        ? new Date(t.lastSent).toLocaleDateString('en-IN', {
+                        ? new Date(t.lastSent).toLocaleDateString('en-US', {
                             day: 'numeric',
                             month: 'short',
                           })
