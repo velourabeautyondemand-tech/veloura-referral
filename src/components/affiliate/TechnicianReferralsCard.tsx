@@ -6,7 +6,13 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Check, Copy, Sparkles } from 'lucide-react';
+import { Check, Copy, Sparkles, Landmark } from 'lucide-react';
+
+type StripeStatus = {
+  configured: boolean;
+  connected: boolean;
+  payoutsEnabled: boolean;
+};
 
 type TechnicianReferral = {
   id: string;
@@ -48,6 +54,9 @@ export function TechnicianReferralsCard() {
   const [link, setLink] = useState('');
   const [copied, setCopied] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [stripe, setStripe] = useState<StripeStatus | null>(null);
+  const [stripeBusy, setStripeBusy] = useState(false);
+  const [stripeError, setStripeError] = useState('');
 
   useEffect(() => {
     fetch('/api/affiliate/technician-referrals')
@@ -62,7 +71,30 @@ export function TechnicianReferralsCard() {
       })
       .catch(() => {})
       .finally(() => setLoading(false));
+
+    fetch('/api/affiliate/stripe')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => { if (data) setStripe(data); })
+      .catch(() => {});
   }, []);
+
+  const openStripe = async (action: 'onboard' | 'dashboard') => {
+    setStripeBusy(true);
+    setStripeError('');
+    try {
+      const res = await fetch('/api/affiliate/stripe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.url) throw new Error(data.error || 'Unable to open Stripe.');
+      window.location.href = data.url;
+    } catch (e) {
+      setStripeError(e instanceof Error ? e.message : 'Unable to open Stripe.');
+      setStripeBusy(false);
+    }
+  };
 
   const copy = async () => {
     if (!link) return;
@@ -97,6 +129,34 @@ export function TechnicianReferralsCard() {
             </Button>
           </div>
         </div>
+
+        {stripe?.configured && (
+          <div className="flex flex-col gap-3 rounded-xl border p-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-start gap-3">
+              <Landmark className="mt-0.5 h-5 w-5 text-muted-foreground" />
+              <div>
+                <p className="text-sm font-medium">
+                  {stripe.payoutsEnabled
+                    ? 'Stripe connected: you’re set up for Friday payouts'
+                    : stripe.connected
+                      ? 'Finish your Stripe setup to get paid'
+                      : 'Connect Stripe to get paid'}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Earned rewards are sent to your bank through Stripe every Friday.
+                </p>
+                {stripeError && <p className="mt-1 text-xs text-destructive">{stripeError}</p>}
+              </div>
+            </div>
+            <Button
+              variant={stripe.payoutsEnabled ? 'outline' : 'default'}
+              disabled={stripeBusy}
+              onClick={() => openStripe(stripe.payoutsEnabled ? 'dashboard' : 'onboard')}
+            >
+              {stripeBusy ? 'Opening Stripe…' : stripe.payoutsEnabled ? 'View Stripe account' : stripe.connected ? 'Finish setup' : 'Connect Stripe'}
+            </Button>
+          </div>
+        )}
 
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           {[
