@@ -9,10 +9,11 @@ export type RewardInputs = {
   earnedAt: Date | null;
 };
 
+// VÉLOURA policy: the $10 reward is earned as soon as the technician is
+// approved. Onboarding is still tracked but no longer gates the reward.
 export function earnedRewardUpdate(referral: RewardInputs, now = new Date()) {
   if (
     referral.status === 'APPROVED' &&
-    referral.onboardingCompletedAt &&
     referral.rewardStatus === 'PENDING'
   ) {
     return { rewardStatus: 'EARNED' as const, earnedAt: referral.earnedAt ?? now };
