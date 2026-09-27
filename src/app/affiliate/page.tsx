@@ -50,6 +50,7 @@ import {
   Banknote,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { TechnicianReferralsCard } from '@/components/affiliate/TechnicianReferralsCard';
 
 interface AffiliateStats {
   totalEarnings: number;
@@ -243,8 +244,8 @@ export default function AffiliateDashboard() {
                 <span className="text-2xl font-bold">{currencySymbol}</span>
               </div>
               <div>
-                <p className="text-sm text-white/90 font-medium tracking-wide">Earn 20% commission on all paid customers</p>
-                <p className="text-xl font-bold mt-1 tracking-tight">Start referring today and grow your wealth!</p>
+                <p className="text-sm text-white/90 font-medium tracking-wide">Earn $10 for every technician VÉLOURA approves</p>
+                <p className="text-xl font-bold mt-1 tracking-tight">Share your link. Applicants are credited to you automatically.</p>
               </div>
             </div>
             <Button variant="secondary" onClick={() => setShowSubmitModal(true)} className="gap-2 hidden sm:flex bg-white text-emerald-700 hover:bg-emerald-50 border-0 shadow-md transform transition hover:scale-105 active:scale-95">
@@ -313,60 +314,8 @@ export default function AffiliateDashboard() {
         ))}
       </div>
 
-      {/* Referral Links */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base">
-            <Link className="h-4 w-4" />
-            Your Referral Links
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {!stats?.referralCode ? (
-            <div className="flex flex-col items-center justify-center py-8 text-center">
-              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-muted mb-4">
-                <Link className="h-6 w-6 text-muted-foreground" />
-              </div>
-              <p className="font-medium">No referral code found</p>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Generate your referral code to start earning commissions
-              </p>
-              <Button className="mt-4" onClick={handleGenerateCode}>
-                Generate Referral Code
-              </Button>
-            </div>
-          ) : (
-            <>
-              <div className="space-y-2">
-                <Label>Referral Link</Label>
-                <div className="flex gap-2">
-                  <Input readOnly value={stats?.referralLink || ''} className="font-mono text-sm" />
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={() => copyToClipboard(stats?.referralLink || '', 'link')}
-                  >
-                    {copied === 'link' ? <Check className="h-4 w-4 text-emerald-600" /> : <Copy className="h-4 w-4" />}
-                  </Button>
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label>Referral Code</Label>
-                <div className="flex gap-2">
-                  <Input readOnly value={stats?.referralCode || ''} className="font-mono text-sm" />
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={() => copyToClipboard(stats?.referralCode || '', 'code')}
-                  >
-                    {copied === 'code' ? <Check className="h-4 w-4 text-emerald-600" /> : <Copy className="h-4 w-4" />}
-                  </Button>
-                </div>
-              </div>
-            </>
-          )}
-        </CardContent>
-      </Card>
+      {/* Technician referrals ($10 per approved technician) */}
+      <TechnicianReferralsCard />
 
       {/* Recent Referrals */}
       <Card>

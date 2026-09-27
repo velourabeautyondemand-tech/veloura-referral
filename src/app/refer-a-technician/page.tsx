@@ -1,7 +1,7 @@
 'use client';
 
 import Image from 'next/image';
-import { FormEvent, useState } from 'react';
+import { FormEvent, useEffect, useState } from 'react';
 import {
   ArrowUpRight,
   BadgeCheck,
@@ -41,6 +41,19 @@ export default function ReferATechnicianPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [submitted, setSubmitted] = useState(false);
+  // Set when the page is opened from a partner link (?ref=CODE).
+  const [referrer, setReferrer] = useState<{ code: string; name: string } | null>(null);
+
+  useEffect(() => {
+    const code = new URLSearchParams(window.location.search).get('ref')?.trim();
+    if (!code) return;
+    fetch(`/api/website-referrals/referrer?code=${encodeURIComponent(code)}`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data?.valid && data.name) setReferrer({ code, name: data.name });
+      })
+      .catch(() => {});
+  }, []);
 
   async function submit(event: FormEvent) {
     event.preventDefault();
@@ -50,7 +63,7 @@ export default function ReferATechnicianPage() {
       const response = await fetch('/api/website-referrals', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
+        body: JSON.stringify(referrer ? { ...form, refCode: referrer.code } : form),
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || 'Unable to submit the referral.');
@@ -101,10 +114,20 @@ export default function ReferATechnicianPage() {
           <Card className="overflow-hidden border-[#f0c5d0] bg-white/95 shadow-[0_24px_70px_rgba(111,31,62,0.12)] backdrop-blur">
             <div className="h-2 bg-gradient-to-r from-[#f47a6a] via-[#d94f75] to-[#b62382]" />
             <CardHeader className="space-y-2 px-6 pb-5 pt-7 sm:px-8">
-              <CardTitle className="text-2xl text-[#5c1734]">Submit a technician referral</CardTitle>
+              <CardTitle className="text-2xl text-[#5c1734]">
+                {referrer ? 'Apply to join VÉLOURA' : 'Submit a technician referral'}
+              </CardTitle>
               <CardDescription className="text-[#805568]">
-                Enter your name and email, and the technician’s contact information. No account is required.
+                {referrer
+                  ? 'Enter your contact information and our team will review your application. No account is required.'
+                  : 'Enter your name and email, and the technician’s contact information. No account is required.'}
               </CardDescription>
+              {referrer && (
+                <p className="inline-flex w-fit items-center gap-2 rounded-full bg-[#ffe3ea] px-3 py-1.5 text-sm font-semibold text-[#8d234d]">
+                  <Sparkles className="h-4 w-4" />
+                  Referred by {referrer.name}
+                </p>
+              )}
             </CardHeader>
             <CardContent className="px-6 pb-8 sm:px-8">
               {submitted ? (
@@ -113,12 +136,14 @@ export default function ReferATechnicianPage() {
                     <CheckCircle2 className="h-9 w-9 text-emerald-700" />
                   </div>
                   <div>
-                    <h2 className="text-2xl font-semibold text-[#5c1734]">Referral received</h2>
+                    <h2 className="text-2xl font-semibold text-[#5c1734]">{referrer ? 'Application received' : 'Referral received'}</h2>
                     <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[#744357]">
-                      VÉLOURA Beauty on Demand will review the technician and track their onboarding. The reward
-                      remains pending until both requirements are complete.
+                      {referrer
+                        ? 'Thank you for applying. The VÉLOURA Beauty on Demand team will review your application and contact you about next steps.'
+                        : 'VÉLOURA Beauty on Demand will review the technician and track their onboarding. The reward remains pending until both requirements are complete.'}
                     </p>
                   </div>
+                  {!referrer && (
                   <Button
                     variant="outline"
                     className="border-[#d98aa1] text-[#8d234d] hover:bg-[#ffe7ed]"
@@ -126,9 +151,12 @@ export default function ReferATechnicianPage() {
                   >
                     Refer another technician
                   </Button>
+                  )}
                 </div>
               ) : (
                 <form className="space-y-5" onSubmit={submit}>
+                  {!referrer && (
+                    <>
                   <div className="space-y-2">
                     <Label htmlFor="referrerName" className="text-[#5c1734]">Who referred you</Label>
                     <Input
@@ -152,8 +180,10 @@ export default function ReferATechnicianPage() {
                       className="h-12 border-[#e9c4ce] bg-white focus-visible:ring-[#d94f75]"
                     />
                   </div>
+                    </>
+                  )}
                   <div className="space-y-2">
-                    <Label htmlFor="technicianName" className="text-[#5c1734]">Technician name</Label>
+                    <Label htmlFor="technicianName" className="text-[#5c1734]">{referrer ? 'Your name' : 'Technician name'}</Label>
                     <Input
                       id="technicianName"
                       required
@@ -164,7 +194,7 @@ export default function ReferATechnicianPage() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="technicianEmail" className="text-[#5c1734]">Technician email</Label>
+                    <Label htmlFor="technicianEmail" className="text-[#5c1734]">{referrer ? 'Your email' : 'Technician email'}</Label>
                     <Input
                       id="technicianEmail"
                       type="email"
@@ -176,7 +206,7 @@ export default function ReferATechnicianPage() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="technicianPhone" className="text-[#5c1734]">Technician phone</Label>
+                    <Label htmlFor="technicianPhone" className="text-[#5c1734]">{referrer ? 'Your phone' : 'Technician phone'}</Label>
                     <Input
                       id="technicianPhone"
                       type="tel"
@@ -195,7 +225,7 @@ export default function ReferATechnicianPage() {
                     type="submit"
                     disabled={submitting}
                   >
-                    {submitting ? 'Submitting…' : 'Submit referral'}
+                    {submitting ? 'Submitting…' : referrer ? 'Submit application' : 'Submit referral'}
                   </Button>
                 </form>
               )}

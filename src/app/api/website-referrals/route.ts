@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma';
 import { checkRateLimit } from '@/lib/rate-limit';
 import { websiteReferralSchema } from '@/lib/validations';
 import { normalizeEmail, WEBSITE_REFERRAL_REWARD_CENTS } from '@/lib/website-referrals';
+import { findActivePartnerByCode } from '@/lib/partner-lookup';
 
 export async function POST(request: NextRequest) {
   const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
@@ -26,11 +27,34 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  let referrerName = parsed.data.referrerName.trim();
+  let referrerEmail = normalizeEmail(parsed.data.referrerEmail);
+
+  // Partner link (?ref=CODE): attribute to the partner account automatically.
+  if (parsed.data.refCode) {
+    const partner = await findActivePartnerByCode(parsed.data.refCode);
+    if (!partner) {
+      return NextResponse.json(
+        { error: 'This referral link is no longer valid. Please ask your referrer for a new link.' },
+        { status: 400 }
+      );
+    }
+    referrerName = partner.name;
+    referrerEmail = normalizeEmail(partner.email);
+  }
+
+  if (referrerEmail === normalizeEmail(parsed.data.technicianEmail)) {
+    return NextResponse.json(
+      { error: 'You cannot refer yourself.' },
+      { status: 400 }
+    );
+  }
+
   try {
     const referral = await prisma.websiteReferral.create({
       data: {
-        referrerName: parsed.data.referrerName.trim(),
-        referrerEmail: normalizeEmail(parsed.data.referrerEmail),
+        referrerName,
+        referrerEmail,
         technicianName: parsed.data.technicianName.trim(),
         technicianEmail: normalizeEmail(parsed.data.technicianEmail),
         technicianPhone: parsed.data.technicianPhone.trim(),

@@ -69,6 +69,50 @@ export async function getAdminIdentityForEmail(email: string): Promise<WebsiteAd
   }
 }
 
+export type PartnerLoginIdentity = {
+  id: string;
+  email: string;
+  name: string;
+  role: 'AFFILIATE';
+  status: 'ACTIVE';
+  hasAffiliate: true;
+};
+
+export type LoginIdentity = WebsiteAdminIdentity | PartnerLoginIdentity;
+
+// Partners (affiliates) sign in with the same email one-time code as admins.
+// Only ACTIVE users with the AFFILIATE role and an affiliate profile qualify.
+export async function getPartnerIdentityForEmail(email: string): Promise<PartnerLoginIdentity | null> {
+  const normalizedEmail = email.trim().toLowerCase();
+  try {
+    const user = await prisma.user.findUnique({
+      where: { email: normalizedEmail },
+      include: { affiliate: { select: { id: true } } },
+    });
+    if (!user || user.role !== 'AFFILIATE' || user.status !== 'ACTIVE' || !user.affiliate) return null;
+
+    return {
+      id: user.id,
+      email: normalizedEmail,
+      name: user.name,
+      role: 'AFFILIATE',
+      status: 'ACTIVE',
+      hasAffiliate: true,
+    };
+  } catch (error) {
+    console.error('partner_lookup_failed', error instanceof Error ? error.message : error);
+    return null;
+  }
+}
+
+// Admins (ADMIN_EMAILS + active team members) take priority; otherwise an
+// active partner account can sign in and is routed to the partner dashboard.
+export async function getLoginIdentityForEmail(email: string): Promise<LoginIdentity | null> {
+  const admin = await getAdminIdentityForEmail(email);
+  if (admin) return admin;
+  return getPartnerIdentityForEmail(email);
+}
+
 export function getWebsiteAdminFromHeaders(headers: Pick<Headers, 'get'>) {
   const id = headers.get('x-user-id');
   const role = headers.get('x-user-role');

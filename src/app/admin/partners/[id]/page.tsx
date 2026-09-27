@@ -144,12 +144,12 @@ export default function PartnerDetailPage() {
         if (affiliate) {
           setPartner({
             id: affiliate.id,
-            name: affiliate.name,
-            email: affiliate.email,
+            name: affiliate.user?.name ?? affiliate.name ?? '',
+            email: affiliate.user?.email ?? affiliate.email ?? '',
             referralCode: affiliate.referralCode,
             partnerGroup: affiliate.partnerGroup,
-            commissionRate: affiliate.commissionRate || 0.20,
-            status: affiliate.status,
+            commissionRate: affiliate.partnerGroup?.commissionRate ?? affiliate.commissionRate ?? 0,
+            status: affiliate.user?.status ?? affiliate.status,
             totalClicks: affiliate.totalClicks || 0,
             totalLeads: affiliate.totalLeads || 0,
             totalRevenue: affiliate.totalRevenue || 0,
@@ -369,7 +369,7 @@ export default function PartnerDetailPage() {
                   </Badge>
                 )}
                 <Badge variant="outline" className="text-xs">
-                  {(partner.commissionRate * 100).toFixed(0)}% commission
+                  $10 per approved technician
                 </Badge>
               </div>
             </div>
@@ -463,7 +463,7 @@ export default function PartnerDetailPage() {
                   { label: 'Email', value: partner.email },
                   { label: 'Referral Code', value: partner.referralCode, mono: true },
                   { label: 'Partner Group', value: partner.partnerGroup || 'Default' },
-                  { label: 'Commission Rate', value: `${(partner.commissionRate * 100).toFixed(0)}%` },
+                  { label: 'Reward', value: '$10 per approved technician' },
                   { label: 'Partner Since', value: formatDate(partner.createdAt) },
                 ].map((item) => (
                   <div key={item.label} className="flex items-center justify-between">

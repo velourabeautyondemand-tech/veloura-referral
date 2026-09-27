@@ -134,7 +134,7 @@ export async function POST(request: NextRequest) {
 
     // Get partner group commission rate
     const affiliate = referral.affiliate as any;
-    let commissionRate = 0.20; // Default 20%
+    let commissionRate = 0; // VÉLOURA: no % commission on bookings unless a partner group sets one
 
     if (affiliate.partnerGroupId) {
       const partnerGroup = await prisma.partnerGroup.findUnique({

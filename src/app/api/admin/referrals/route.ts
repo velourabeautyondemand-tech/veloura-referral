@@ -59,7 +59,7 @@ export async function GET(request: NextRequest) {
             referralCode: affiliate.referralCode,
             partnerGroup: pgData?.name || 'Default',
             partnerGroupId: pgId,
-            commissionRate: pgData?.rate || 0.20
+            commissionRate: pgData?.rate ?? 0 // VÉLOURA pays $10 per technician, not % on bookings
           }
         };
       })
