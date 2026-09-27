@@ -40,7 +40,7 @@ import {
   Building2,
   Mail,
   Phone,
-  IndianRupee,
+  DollarSign,
   Eye,
 } from 'lucide-react';
 
@@ -287,8 +287,8 @@ export default function CustomersPage() {
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-1 text-sm font-medium">
-                        <IndianRupee className="h-3.5 w-3.5" />
-                        {referral.estimatedValue.toLocaleString('en-IN')}
+                        <DollarSign className="h-3.5 w-3.5" />
+                        {referral.estimatedValue.toLocaleString('en-US')}
                       </div>
                     </TableCell>
                     <TableCell>
@@ -297,7 +297,7 @@ export default function CustomersPage() {
                       </Badge>
                     </TableCell>
                     <TableCell className="text-sm text-muted-foreground">
-                      {new Date(referral.createdAt).toLocaleDateString('en-IN', {
+                      {new Date(referral.createdAt).toLocaleDateString('en-US', {
                         day: 'numeric',
                         month: 'short',
                         year: 'numeric',

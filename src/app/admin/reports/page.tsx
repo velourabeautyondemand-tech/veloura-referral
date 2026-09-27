@@ -52,7 +52,7 @@ import {
   Loader2,
   Users,
   Link2,
-  IndianRupee,
+  DollarSign,
   Wallet,
   Calendar,
   Clock,
@@ -132,7 +132,7 @@ const reportTypes: { value: ReportType; label: string; description: string; icon
   { value: 'summary', label: 'Summary', description: 'Overview of all metrics', icon: BarChart3 },
   { value: 'affiliates', label: 'Affiliates', description: 'Partner performance data', icon: Users },
   { value: 'referrals', label: 'Referrals', description: 'Referral lead details', icon: Link2 },
-  { value: 'commissions', label: 'Commissions', description: 'Commission records', icon: IndianRupee },
+  { value: 'commissions', label: 'Commissions', description: 'Commission records', icon: DollarSign },
   { value: 'payouts', label: 'Payouts', description: 'Payout history', icon: Wallet },
 ];
 
@@ -413,7 +413,7 @@ export default function ReportsPage() {
                         <span className="font-medium">
                           {typeof v === 'number'
                             ? k.toLowerCase().includes('cents')
-                              ? `₹${(v / 100).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`
+                              ? `$${(v / 100).toLocaleString('en-US', { minimumFractionDigits: 2 })}`
                               : v.toLocaleString()
                             : String(v)}
                         </span>
@@ -433,7 +433,7 @@ export default function ReportsPage() {
                 <p className="text-2xl font-bold">
                   {typeof value === 'number'
                     ? key.toLowerCase().includes('cents')
-                      ? `₹${(value / 100).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`
+                      ? `$${(value / 100).toLocaleString('en-US', { minimumFractionDigits: 2 })}`
                       : value.toLocaleString()
                     : String(value)}
                 </p>
@@ -468,7 +468,7 @@ export default function ReportsPage() {
                   let display: string;
                   if (val === null || val === undefined) display = '—';
                   else if (typeof val === 'number' && col.toLowerCase().includes('cents'))
-                    display = `₹${(val / 100).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`;
+                    display = `$${(val / 100).toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
                   else if (typeof val === 'number') display = val.toLocaleString();
                   else display = String(val);
                   return <TableCell key={col} className="text-sm whitespace-nowrap">{display}</TableCell>;
@@ -619,7 +619,7 @@ export default function ReportsPage() {
             <Card>
               <CardHeader>
                 <CardTitle>{reportTypes.find((r) => r.value === reportType)?.label} Report</CardTitle>
-                <CardDescription>{startDate && endDate ? `${new Date(startDate).toLocaleDateString('en-IN')} — ${new Date(endDate).toLocaleDateString('en-IN')}` : 'All time'}</CardDescription>
+                <CardDescription>{startDate && endDate ? `${new Date(startDate).toLocaleDateString('en-US')} — ${new Date(endDate).toLocaleDateString('en-US')}` : 'All time'}</CardDescription>
               </CardHeader>
               <CardContent>
                 {reportType === 'summary' ? renderSummary() : renderTable()}
@@ -738,7 +738,7 @@ export default function ReportsPage() {
                         <TableCell className="text-sm">{s.frequency}</TableCell>
                         <TableCell className="text-sm text-muted-foreground">{(s.recipients as string[]).length} recipient(s)</TableCell>
                         <TableCell className="text-sm text-muted-foreground">
-                          {s.nextRunAt ? new Date(s.nextRunAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : '—'}
+                          {s.nextRunAt ? new Date(s.nextRunAt).toLocaleDateString('en-US', { day: 'numeric', month: 'short' }) : '—'}
                         </TableCell>
                         <TableCell><Switch checked={s.isActive} onCheckedChange={() => handleToggleScheduled(s.id, s.isActive)} /></TableCell>
                         <TableCell className="text-right">
@@ -802,7 +802,7 @@ export default function ReportsPage() {
                         <TableCell><Badge variant="outline">{r.reportType}</Badge></TableCell>
                         <TableCell className="text-sm text-muted-foreground max-w-[200px] truncate">{r.description || '—'}</TableCell>
                         <TableCell className="text-sm text-muted-foreground">
-                          {new Date(r.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+                          {new Date(r.createdAt).toLocaleDateString('en-US', { day: 'numeric', month: 'short' })}
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex justify-end gap-1">
@@ -903,10 +903,10 @@ export default function ReportsPage() {
                             <TableCell className="text-right">{c.conversionRate}%</TableCell>
                             <TableCell className="text-right">{c.totalCommissions}</TableCell>
                             <TableCell className="text-right font-medium">
-                              ₹{(c.totalEarningsCents / 100).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                              ${(c.totalEarningsCents / 100).toLocaleString('en-US', { minimumFractionDigits: 2 })}
                             </TableCell>
                             <TableCell className="text-right text-muted-foreground">
-                              ₹{(c.avgEarningsPerAffiliateCents / 100).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                              ${(c.avgEarningsPerAffiliateCents / 100).toLocaleString('en-US', { minimumFractionDigits: 2 })}
                             </TableCell>
                           </TableRow>
                         ))}

@@ -32,7 +32,7 @@ import {
   CheckCircle2,
   XCircle,
   Loader2,
-  IndianRupee,
+  DollarSign,
   ArrowUpRight,
   Ban,
   Download,
@@ -63,7 +63,7 @@ export default function PayoutsPage() {
   const [payouts, setPayouts] = useState<Payout[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState('all');
-  const [currencySymbol, setCurrencySymbol] = useState('₹');
+  const [currencySymbol, setCurrencySymbol] = useState('$');
 
   useEffect(() => {
     fetchPayouts();
@@ -75,7 +75,7 @@ export default function PayoutsPage() {
       const data = await res.json();
       if (data.success) {
         setPayouts(data.payouts || []);
-        setCurrencySymbol(data.currencySymbol || '₹');
+        setCurrencySymbol(data.currencySymbol || '$');
       }
     } catch (error) {
       console.error('Failed to fetch payouts:', error);
@@ -243,7 +243,7 @@ export default function PayoutsPage() {
                         <Badge variant={cfg.variant}>{cfg.label}</Badge>
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground">
-                        {new Date(payout.createdAt).toLocaleDateString('en-IN', {
+                        {new Date(payout.createdAt).toLocaleDateString('en-US', {
                           day: 'numeric',
                           month: 'short',
                           year: 'numeric',
@@ -251,7 +251,7 @@ export default function PayoutsPage() {
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground">
                         {payout.processedAt
-                          ? new Date(payout.processedAt).toLocaleDateString('en-IN', {
+                          ? new Date(payout.processedAt).toLocaleDateString('en-US', {
                             day: 'numeric',
                             month: 'short',
                             year: 'numeric',

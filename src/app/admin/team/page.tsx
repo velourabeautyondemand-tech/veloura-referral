@@ -258,7 +258,7 @@ export default function TeamPage() {
                     <TableCell>{getRoleBadge(member.role)}</TableCell>
                     <TableCell>{getStatusBadge(member.status)}</TableCell>
                     <TableCell className="text-sm text-muted-foreground">
-                      {new Date(member.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                      {new Date(member.createdAt).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })}
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-1">
