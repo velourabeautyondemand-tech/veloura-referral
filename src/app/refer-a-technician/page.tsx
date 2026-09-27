@@ -15,6 +15,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { JoinVelouraSteps } from '@/components/referrals/JoinVelouraSteps';
 
 const initialForm = { referrerName: '', referrerEmail: '', technicianName: '', technicianEmail: '', technicianPhone: '' };
 
@@ -139,9 +140,12 @@ export default function ReferATechnicianPage() {
                     <h2 className="text-2xl font-semibold text-[#5c1734]">{referrer ? 'Application received' : 'Referral received'}</h2>
                     <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[#744357]">
                       {referrer
-                        ? 'Thank you for applying. The VÉLOURA Beauty on Demand team will review your application and contact you about next steps.'
+                        ? 'Thank you! We’ve saved your details and credited your referrer. Now complete your professional profile in the VÉLOURA app.'
                         : 'VÉLOURA Beauty on Demand will review the technician. The reward remains pending until they are approved.'}
                     </p>
+                  </div>
+                  <div className="rounded-2xl border border-[#f0c5d0] bg-[#fff8fa] p-5">
+                    <JoinVelouraSteps forApplicant={Boolean(referrer)} />
                   </div>
                   {!referrer && (
                   <Button
