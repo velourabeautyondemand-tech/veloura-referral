@@ -9,8 +9,12 @@ test('new referrals remain pending and use a $10 reward', () => {
   assert.deepEqual(earnedRewardUpdate({ status: 'PENDING', onboardingCompletedAt: null, rewardStatus: 'PENDING', earnedAt: null }, now), {});
 });
 
-test('approval alone does not earn the reward', () => {
-  assert.deepEqual(earnedRewardUpdate({ status: 'APPROVED', onboardingCompletedAt: null, rewardStatus: 'PENDING', earnedAt: null }, now), {});
+test('approval alone earns the reward', () => {
+  // Policy: approval alone earns the $10 reward.
+  assert.deepEqual(
+    earnedRewardUpdate({ status: 'APPROVED', onboardingCompletedAt: null, rewardStatus: 'PENDING', earnedAt: null }, now),
+    { rewardStatus: 'EARNED', earnedAt: now }
+  );
 });
 
 test('onboarding alone does not earn the reward', () => {
