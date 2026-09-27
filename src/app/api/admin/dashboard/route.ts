@@ -54,12 +54,12 @@ export async function GET(request: NextRequest) {
       const estimatedValue = Number(metadata?.estimated_value) || 0;
       const valueInCents = estimatedValue * 100;
       
-      // Get commission rate from partner group or default to 20%
+      // Commission rate from partner group; VÉLOURA default is 0% (rewards are $10 per technician)
       const affiliate = ref.affiliate as any;
       const partnerGroupId = affiliate.partnerGroupId;
-      const commissionRate = partnerGroupId 
-        ? (partnerGroupMap.get(partnerGroupId) || 0.20)
-        : 0.20;
+      const commissionRate = partnerGroupId
+        ? (partnerGroupMap.get(partnerGroupId) ?? 0)
+        : 0;
       const commissionInCents = Math.floor(valueInCents * commissionRate);
       
       totalEstimatedRevenue += valueInCents;
