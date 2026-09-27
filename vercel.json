@@ -5,7 +5,9 @@
   "buildCommand": "npx prisma generate && npm run build",
   "installCommand": "npm install",
   "devCommand": "npm run dev",
-  "regions": ["iad1"],
+  "regions": [
+    "iad1"
+  ],
   "headers": [
     {
       "source": "/(.*)",
@@ -39,6 +41,12 @@
           "value": "camera=(), microphone=(), geolocation=()"
         }
       ]
+    }
+  ],
+  "crons": [
+    {
+      "path": "/api/cron/weekly-payouts",
+      "schedule": "0 17 * * 5"
     }
   ]
 }
