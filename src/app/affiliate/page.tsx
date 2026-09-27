@@ -248,10 +248,18 @@ export default function AffiliateDashboard() {
                 <p className="text-xl font-bold mt-1 tracking-tight">Share your link. Applicants are credited to you automatically.</p>
               </div>
             </div>
-            <Button variant="secondary" onClick={() => setShowSubmitModal(true)} className="gap-2 hidden sm:flex bg-white text-emerald-700 hover:bg-emerald-50 border-0 shadow-md transform transition hover:scale-105 active:scale-95">
-              <Plus className="h-4 w-4" />
-              Submit Lead
-            </Button>
+            {stats?.referralCode && (
+              <Button variant="secondary" asChild className="gap-2 hidden sm:flex bg-white text-emerald-700 hover:bg-emerald-50 border-0 shadow-md transform transition hover:scale-105 active:scale-95">
+                <a
+                  href={`/refer-a-technician?ref=${encodeURIComponent(stats.referralCode)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <Plus className="h-4 w-4" />
+                  Refer a technician
+                </a>
+              </Button>
+            )}
           </CardContent>
         </Card>
       </motion.div>
