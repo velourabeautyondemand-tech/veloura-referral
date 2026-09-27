@@ -732,11 +732,11 @@ class EmailService {
     }
   ): Promise<{ success: boolean; message: string }> {
     const symbol = await this.getCurrencySymbol();
-    const amount = (data.amountCents / 100).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const amount = (data.amountCents / 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     return this.sendTemplatedEmail({
       to: affiliateEmail,
       templateType: 'PAYOUT_GENERATED',
-      fallbackSubject: `🎉 Payout Initiated: ₹${amount}`,
+      fallbackSubject: `🎉 Payout Initiated: $${amount}`,
       variables: { ...data, amount: this.formatAmount(data.amountCents, symbol), symbol },
       generateFallbackHtml: () => `
       <!DOCTYPE html>
@@ -765,7 +765,7 @@ class EmailService {
           
           <div class="amount-box">
             <div style="font-size: 14px; color: #666; margin-bottom: 10px;">Payout Amount</div>
-            <div class="amount">₹${amount}</div>
+            <div class="amount">$${amount}</div>
             <div style="margin-top: 15px;">
               <span class="status-badge">PENDING</span>
             </div>
@@ -813,8 +813,8 @@ class EmailService {
     }
   ): Promise<{ success: boolean; message: string }> {
     const symbol = await this.getCurrencySymbol();
-    const amount = (data.amountCents / 100).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-    const date = new Date(data.processedAt).toLocaleDateString('en-IN', {
+    const amount = (data.amountCents / 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const date = new Date(data.processedAt).toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'long',
       day: 'numeric'
@@ -822,7 +822,7 @@ class EmailService {
     return this.sendTemplatedEmail({
       to: affiliateEmail,
       templateType: 'PARTNER_PAID',
-      fallbackSubject: `✅ Payment Completed: ₹${amount} Paid!`,
+      fallbackSubject: `✅ Payment Completed: $${amount} Paid!`,
       variables: { ...data, amount: this.formatAmount(data.amountCents, symbol), date, symbol },
       generateFallbackHtml: () => `
       <!DOCTYPE html>
@@ -854,7 +854,7 @@ class EmailService {
           
           <div class="amount-box">
             <div style="font-size: 14px; color: #666; margin-bottom: 10px;">Amount Paid</div>
-            <div class="amount">₹${amount}</div>
+            <div class="amount">$${amount}</div>
             <div style="margin-top: 15px;">
               <span class="status-badge">✓ COMPLETED</span>
             </div>
