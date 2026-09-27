@@ -1,7 +1,7 @@
 import { prisma } from './prisma';
 import crypto from 'crypto';
 import { evaluateOtpAttempt, MAX_OTP_ATTEMPTS } from './otp-attempts';
-import { getAdminIdentityForEmail, type WebsiteAdminIdentity } from './website-admin-auth';
+import { getLoginIdentityForEmail, type LoginIdentity } from './website-admin-auth';
 
 type OtpFailureStage =
   | 'configuration'
@@ -51,7 +51,7 @@ export class OTPService {
       }
 
       stage = 'admin_authorization';
-      const admin = await getAdminIdentityForEmail(normalizedEmail);
+      const admin = await getLoginIdentityForEmail(normalizedEmail);
       if (!admin) {
         return {
           success: false,
@@ -145,12 +145,12 @@ export class OTPService {
   // Verify OTP and return user if valid
   async verifyOTP(email: string, code: string): Promise<{
     success: boolean;
-    user?: WebsiteAdminIdentity;
+    user?: LoginIdentity;
     message: string;
   }> {
     try {
       const normalizedEmail = email.trim().toLowerCase();
-      const admin = await getAdminIdentityForEmail(normalizedEmail);
+      const admin = await getLoginIdentityForEmail(normalizedEmail);
       if (!admin) {
         return {
           success: false,

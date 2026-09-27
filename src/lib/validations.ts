@@ -9,12 +9,23 @@ export const referralSchema = z.object({
     estimatedValue: z.number().min(0).max(999999999).optional(),
 });
 
+// When `refCode` is present (partner link), the referrer is taken from the
+// partner account on the server and the typed referrer fields are ignored.
 export const websiteReferralSchema = z.object({
-    referrerName: z.string().trim().min(2, 'Enter the name of who referred you').max(120),
-    referrerEmail: z.string().trim().email('Enter a valid referrer email'),
+    refCode: z.string().trim().min(1).max(64).optional(),
+    referrerName: z.string().trim().max(120).optional().default(''),
+    referrerEmail: z.string().trim().max(254).optional().default(''),
     technicianName: z.string().trim().min(2, 'Technician name must be at least 2 characters').max(120),
     technicianEmail: z.string().trim().email('Enter a valid technician email'),
     technicianPhone: z.string().trim().min(7, 'Enter a valid technician phone number').max(30),
+}).superRefine((data, ctx) => {
+    if (data.refCode) return;
+    if (data.referrerName.length < 2) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['referrerName'], message: 'Enter the name of who referred you' });
+    }
+    if (!z.string().email().safeParse(data.referrerEmail).success) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['referrerEmail'], message: 'Enter a valid referrer email' });
+    }
 });
 
 // Affiliate Creation Validation (Admin)
