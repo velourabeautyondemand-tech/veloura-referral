@@ -219,7 +219,7 @@ export default function PartnersPage() {
 
       if (data.success) {
         alert(
-          `Partner created successfully!\n\nName: ${data.affiliate.name}\nEmail: ${data.affiliate.email}\nReferral Code: ${data.affiliate.referralCode}\nPassword: ${data.password}\n\nPlease save and share this with the partner.`
+          `Partner created successfully!\n\nName: ${data.affiliate.name}\nEmail: ${data.affiliate.email}\nReferral Code: ${data.affiliate.referralCode}\n\nThey sign in at ${window.location.origin}/login with this email. A one-time code is emailed to them; no password is needed.\n\nTheir application link: ${window.location.origin}/refer-a-technician?ref=${data.affiliate.referralCode}`
         );
         setShowCreateModal(false);
         setNewPartner({
