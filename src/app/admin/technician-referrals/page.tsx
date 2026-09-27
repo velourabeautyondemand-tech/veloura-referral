@@ -22,11 +22,22 @@ type Referral = {
 
 type Action = 'approve' | 'reject' | 'complete_onboarding' | 'mark_paid';
 
+type PayoutResult = {
+  email: string;
+  name?: string;
+  amountCents: number;
+  referralCount: number;
+  status: 'paid' | 'skipped' | 'failed';
+  reason?: string;
+};
+
 export default function TechnicianReferralsPage() {
   const [referrals, setReferrals] = useState<Referral[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [workingId, setWorkingId] = useState('');
+  const [paying, setPaying] = useState(false);
+  const [payoutSummary, setPayoutSummary] = useState<PayoutResult[] | null>(null);
 
   const load = useCallback(async () => {
     const response = await fetch('/api/admin/website-referrals');
@@ -58,13 +69,66 @@ export default function TechnicianReferralsPage() {
     }
   }
 
+  async function payNow() {
+    if (!confirm('Send Stripe payouts now for all earned $10 rewards? Partners without Stripe connected are skipped.')) return;
+    setPaying(true);
+    setError('');
+    try {
+      const response = await fetch('/api/admin/website-referrals/payouts', { method: 'POST' });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Payout run failed.');
+      setPayoutSummary(data.results || []);
+      await load();
+    } catch (payError) {
+      setError(payError instanceof Error ? payError.message : 'Payout run failed.');
+    } finally {
+      setPaying(false);
+    }
+  }
+
+  const earnedTotalCents = referrals
+    .filter((r) => r.rewardStatus === 'EARNED')
+    .reduce((sum, r) => sum + r.rewardAmountCents, 0);
+
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Technician referrals</h1>
-        <p className="text-muted-foreground">Website referrals only. Rewards earn after approval and completed onboarding.</p>
+        <p className="text-muted-foreground">Website referrals only. The $10 reward is earned when you approve a technician and is paid out weekly through Stripe.</p>
       </div>
       {error && <p className="rounded-md bg-destructive/10 p-3 text-sm text-destructive" role="alert">{error}</p>}
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between gap-4 space-y-0">
+          <div>
+            <CardTitle>Weekly Stripe payouts</CardTitle>
+            <CardDescription>
+              Earned rewards are paid automatically every Friday. Earned and not yet paid: ${(earnedTotalCents / 100).toFixed(2)}.
+            </CardDescription>
+          </div>
+          <Button onClick={payNow} disabled={paying || earnedTotalCents === 0}>
+            {paying ? 'Paying…' : 'Pay earned rewards now'}
+          </Button>
+        </CardHeader>
+        {payoutSummary && (
+          <CardContent>
+            {payoutSummary.length === 0 ? (
+              <p className="text-sm text-muted-foreground">Nothing to pay.</p>
+            ) : (
+              <ul className="space-y-1 text-sm">
+                {payoutSummary.map((r) => (
+                  <li key={r.email}>
+                    <span className="font-medium">{r.name || r.email}</span>
+                    {' · '}${(r.amountCents / 100).toFixed(2)} ({r.referralCount}){' · '}
+                    {r.status === 'paid' ? <span className="text-emerald-700">Paid</span>
+                      : r.status === 'failed' ? <span className="text-destructive">Failed: {r.reason}</span>
+                      : <span className="text-muted-foreground">Skipped: {r.reason}</span>}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </CardContent>
+        )}
+      </Card>
       <Card>
         <CardHeader><CardTitle>Referral review</CardTitle><CardDescription>$10 rewards are tracked separately from bookings and affiliate commissions.</CardDescription></CardHeader>
         <CardContent>
